@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore, useCallback, useRef } from "react";
+import { useSyncExternalStore, useCallback, useRef, useId } from "react";
 
 interface CountdownTimerProps {
   targetDate: string | Date;
@@ -30,8 +30,6 @@ function calculateTimeLeft(targetDate: Date): TimeLeft {
   };
 }
 
-const emptyTimeLeft: TimeLeft = { days: 0, hours: 0, minutes: 0, seconds: 0 };
-
 const serverSnapshot: TimeLeft = { days: 0, hours: 0, minutes: 0, seconds: 0 };
 
 export function CountdownTimer({
@@ -40,6 +38,7 @@ export function CountdownTimer({
   compact = false,
 }: CountdownTimerProps) {
   const target = new Date(targetDate);
+  const cachedRef = useRef<TimeLeft | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const listenersRef = useRef(new Set<() => void>());
 
@@ -48,6 +47,7 @@ export function CountdownTimer({
 
     if (!intervalRef.current) {
       intervalRef.current = setInterval(() => {
+        cachedRef.current = null;
         listenersRef.current.forEach((fn) => fn());
       }, 1000);
     }
@@ -62,30 +62,24 @@ export function CountdownTimer({
   }, []);
 
   const getSnapshot = useCallback((): TimeLeft => {
-    return calculateTimeLeft(target);
+    if (!cachedRef.current) {
+      cachedRef.current = calculateTimeLeft(target);
+    }
+    return cachedRef.current;
   }, [target]);
 
-  const mounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
+  const getServerSnapshot = useCallback((): TimeLeft => {
+    return serverSnapshot;
+  }, []);
 
-  const timeLeft = useSyncExternalStore(subscribe, getSnapshot, () => serverSnapshot);
+  const timeLeft = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  const displayUnits = mounted
-    ? [
-        { value: timeLeft.days, label: "Días" },
-        { value: timeLeft.hours, label: "Horas" },
-        { value: timeLeft.minutes, label: "Min" },
-        { value: timeLeft.seconds, label: "Seg" },
-      ]
-    : [
-        { value: 0, label: "Días" },
-        { value: 0, label: "Horas" },
-        { value: 0, label: "Min" },
-        { value: 0, label: "Seg" },
-      ];
+  const displayUnits = [
+    { value: timeLeft.days, label: "Días" },
+    { value: timeLeft.hours, label: "Horas" },
+    { value: timeLeft.minutes, label: "Min" },
+    { value: timeLeft.seconds, label: "Seg" },
+  ];
 
   return (
     <div className={`flex gap-2 ${className}`}>
