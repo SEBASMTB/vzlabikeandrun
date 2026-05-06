@@ -13,17 +13,20 @@ export async function POST(
       lastName,
       email,
       phone,
+      idNumber,
       gender,
       dateOfBirth,
+      shirtSize,
       category,
       team,
       emergencyContact,
       emergencyPhone,
       paymentMethod,
       paymentRef,
+      waiverAccepted,
     } = body;
 
-    if (!firstName || !lastName || !email || !phone || !gender || !dateOfBirth || !category) {
+    if (!firstName || !lastName || !email || !phone || !idNumber || !gender || !dateOfBirth || !category) {
       return NextResponse.json(
         { error: "Faltan campos requeridos" },
         { status: 400 }
@@ -33,6 +36,13 @@ export async function POST(
     if (!paymentMethod) {
       return NextResponse.json(
         { error: "Selecciona un método de pago" },
+        { status: 400 }
+      );
+    }
+
+    if (!waiverAccepted) {
+      return NextResponse.json(
+        { error: "Debes aceptar la liberación de responsabilidad" },
         { status: 400 }
       );
     }
@@ -84,6 +94,7 @@ export async function POST(
         emergencyPhone: emergencyPhone || "",
         paymentMethod: paymentMethod || "",
         paymentRef: paymentRef || "",
+        waiverAccepted: waiverAccepted || false,
         status: "pending",
         bibNumber,
       },

@@ -37,7 +37,9 @@ import {
   Smartphone,
   Building2,
   Copy,
+  FileText,
 } from "lucide-react";
+import { LiabilityWaiver } from "./LiabilityWaiver";
 import type { EventCardProps } from "./EventCard";
 
 const personalInfoSchema = z.object({
@@ -45,8 +47,10 @@ const personalInfoSchema = z.object({
   lastName: z.string().min(2, "El apellido debe tener al menos 2 caracteres"),
   email: z.email("Ingresa un email válido"),
   phone: z.string().min(7, "Ingresa un teléfono válido"),
+  idNumber: z.string().min(5, "Ingresa tu cédula de identidad"),
   dateOfBirth: z.string().min(1, "Ingresa tu fecha de nacimiento"),
   gender: z.string().min(1, "Selecciona tu género"),
+  shirtSize: z.string().optional(),
 });
 
 const raceInfoSchema = z.object({
@@ -67,6 +71,9 @@ interface RegistrationDialogProps {
   event: EventCardProps | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  eventData?: {
+    organizer?: string;
+  };
 }
 
 type PaymentMethod = "binance" | "zelle" | "pagomovil" | "transferencia";
@@ -131,7 +138,7 @@ const paymentMethods: {
 const steps = [
   { label: "Datos Personales", icon: User },
   { label: "Categoría", icon: MapPin },
-  { label: "Emergencia", icon: Phone },
+  { label: "Emergencia + Responsabilidad", icon: FileText },
   { label: "Método de Pago", icon: CreditCard },
 ];
 
@@ -139,11 +146,13 @@ export function RegistrationDialog({
   event,
   open,
   onOpenChange,
+  eventData,
 }: RegistrationDialogProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
   const [paymentRef, setPaymentRef] = useState("");
+  const [waiverAccepted, setWaiverAccepted] = useState(false);
   const { toast } = useToast();
 
   const personalForm = useForm<PersonalInfo>({
@@ -153,8 +162,10 @@ export function RegistrationDialog({
       lastName: "",
       email: "",
       phone: "",
+      idNumber: "",
       dateOfBirth: "",
       gender: "",
+      shirtSize: "",
     },
   });
 
@@ -175,6 +186,7 @@ export function RegistrationDialog({
     setCurrentStep(0);
     setSelectedPayment(null);
     setPaymentRef("");
+    setWaiverAccepted(false);
   };
 
   const handleClose = (val: boolean) => {
@@ -193,7 +205,14 @@ export function RegistrationDialog({
       });
     } else if (currentStep === 2) {
       emergencyForm.trigger().then((valid) => {
-        if (valid) setCurrentStep(3);
+        if (valid && waiverAccepted) setCurrentStep(3);
+        else if (!waiverAccepted) {
+          toast({
+            title: "Debes aceptar la liberación de responsabilidad",
+            description: "Lee la declaración y marca la casilla de aceptación para continuar.",
+            variant: "destructive",
+          });
+        }
       });
     }
   };
@@ -226,6 +245,7 @@ export function RegistrationDialog({
           ...emergencyForm.getValues(),
           paymentMethod: selectedPayment,
           paymentRef: paymentRef,
+          waiverAccepted: true,
         }),
       });
 
@@ -347,32 +367,47 @@ export function RegistrationDialog({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="juan@email.com"
-                  {...personalForm.register("email")}
-                />
-                {personalForm.formState.errors.email && (
-                  <p className="text-sm text-destructive">
-                    {personalForm.formState.errors.email.message}
-                  </p>
-                )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="juan@email.com"
+                    {...personalForm.register("email")}
+                  />
+                  {personalForm.formState.errors.email && (
+                    <p className="text-sm text-destructive">
+                      {personalForm.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Teléfono *</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+58 412-123-4567"
+                    {...personalForm.register("phone")}
+                  />
+                  {personalForm.formState.errors.phone && (
+                    <p className="text-sm text-destructive">
+                      {personalForm.formState.errors.phone.message}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Teléfono *</Label>
+                <Label htmlFor="idNumber">Cédula de Identidad *</Label>
                 <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+58 412-123-4567"
-                  {...personalForm.register("phone")}
+                  id="idNumber"
+                  placeholder="V-12345678"
+                  {...personalForm.register("idNumber")}
                 />
-                {personalForm.formState.errors.phone && (
+                {personalForm.formState.errors.idNumber && (
                   <p className="text-sm text-destructive">
-                    {personalForm.formState.errors.phone.message}
+                    {personalForm.formState.errors.idNumber.message}
                   </p>
                 )}
               </div>
@@ -415,6 +450,27 @@ export function RegistrationDialog({
                     </p>
                   )}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="shirtSize">Talla de Camiseta (si aplica)</Label>
+                <Select
+                  value={personalForm.watch("shirtSize")}
+                  onValueChange={(val) =>
+                    personalForm.setValue("shirtSize", val)
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar talla" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="S">S</SelectItem>
+                    <SelectItem value="M">M</SelectItem>
+                    <SelectItem value="L">L</SelectItem>
+                    <SelectItem value="XL">XL</SelectItem>
+                    <SelectItem value="XXL">XXL</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </motion.div>
           )}
@@ -482,47 +538,67 @@ export function RegistrationDialog({
             </motion.div>
           )}
 
-          {/* Step 3: Emergency Contact */}
+          {/* Step 3: Emergency Contact + Liability Waiver */}
           {currentStep === 2 && (
             <motion.div
               key="step3"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-4"
+              className="space-y-5"
             >
-              <div className="space-y-2">
-                <Label htmlFor="emergencyContact">
-                  Nombre de Contacto de Emergencia *
-                </Label>
-                <Input
-                  id="emergencyContact"
-                  placeholder="María Pérez"
-                  {...emergencyForm.register("emergencyContact")}
-                />
-                {emergencyForm.formState.errors.emergencyContact && (
-                  <p className="text-sm text-destructive">
-                    {emergencyForm.formState.errors.emergencyContact.message}
-                  </p>
-                )}
+              {/* Emergency Contact */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Phone className="size-4 text-red-500" />
+                  Contacto de Emergencia
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="emergencyContact">
+                    Nombre del Contacto *
+                  </Label>
+                  <Input
+                    id="emergencyContact"
+                    placeholder="María Pérez"
+                    {...emergencyForm.register("emergencyContact")}
+                  />
+                  {emergencyForm.formState.errors.emergencyContact && (
+                    <p className="text-sm text-destructive">
+                      {emergencyForm.formState.errors.emergencyContact.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="emergencyPhone">
+                    Teléfono de Emergencia *
+                  </Label>
+                  <Input
+                    id="emergencyPhone"
+                    type="tel"
+                    placeholder="+58 414-123-4567"
+                    {...emergencyForm.register("emergencyPhone")}
+                  />
+                  {emergencyForm.formState.errors.emergencyPhone && (
+                    <p className="text-sm text-destructive">
+                      {emergencyForm.formState.errors.emergencyPhone.message}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="emergencyPhone">
-                  Teléfono de Emergencia *
-                </Label>
-                <Input
-                  id="emergencyPhone"
-                  type="tel"
-                  placeholder="+58 414-123-4567"
-                  {...emergencyForm.register("emergencyPhone")}
-                />
-                {emergencyForm.formState.errors.emergencyPhone && (
-                  <p className="text-sm text-destructive">
-                    {emergencyForm.formState.errors.emergencyPhone.message}
-                  </p>
-                )}
-              </div>
+              {/* Divider */}
+              <div className="border-t" />
+
+              {/* Liability Waiver */}
+              <LiabilityWaiver
+                eventTitle={event?.title || ""}
+                eventDate={event?.date || ""}
+                organizer={eventData?.organizer || "VzlaBike and Run®"}
+                accepted={waiverAccepted}
+                onAccept={setWaiverAccepted}
+              />
             </motion.div>
           )}
 
