@@ -244,7 +244,7 @@ export function ContactSection() {
             <div className="rounded-2xl overflow-hidden h-48 bg-gray-200 relative">
               <div className="absolute inset-0 gradient-dark flex items-center justify-center">
                 <div className="text-center text-white">
-                  <MapPin className="size-10 mx-auto mb-2 text-orange-400" />
+                  <MapPin className="size-10 mx-auto mb-2 text-red-400" />
                   <p className="font-semibold">Caracas, Venezuela</p>
                   <p className="text-sm text-white/60">
                     Ubicación central para servicios en todo el país
@@ -265,7 +265,7 @@ export function ContactSection() {
                       ? "noopener noreferrer"
                       : undefined
                   }
-                  className="flex items-start gap-3 p-4 bg-card rounded-xl border hover:border-orange-200 hover:shadow-md transition-all group"
+                  className="flex items-start gap-3 p-4 bg-card rounded-xl border hover:border-red-200 hover:shadow-md transition-all group"
                 >
                   <div className="w-10 h-10 gradient-primary rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                     <info.icon className="size-5 text-white" />

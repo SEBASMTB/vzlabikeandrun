@@ -57,7 +57,7 @@ export function EventsSection() {
               .map((event) => (
                 <div
                   key={event.id}
-                  className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full px-4 py-2 text-sm font-medium"
+                  className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-500 text-white rounded-full px-4 py-2 text-sm font-medium"
                 >
                   <Flame className="size-4" />
                   <span>{event.title}</span>
@@ -105,7 +105,7 @@ export function EventsSection() {
           <Button
             variant="outline"
             size="lg"
-            className="border-orange-300 text-orange-600 hover:bg-orange-50"
+            className="border-red-300 text-red-600 hover:bg-red-50"
           >
             <CalendarDays className="size-4 mr-2" />
             Ver Todos los Eventos

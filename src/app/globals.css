@@ -42,15 +42,15 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  --color-orange-50: #FFF7ED;
-  --color-orange-100: #FFEDD5;
-  --color-orange-200: #FED7AA;
-  --color-orange-300: #FDBA74;
-  --color-orange-400: #FB923C;
-  --color-orange-500: #FF6B00;
-  --color-orange-600: #EA580C;
-  --color-orange-700: #C2410C;
-  --color-red-orange: #FF3D00;
+  --color-red-50: #FEF2F2;
+  --color-red-100: #FEE2E2;
+  --color-red-200: #FECACA;
+  --color-red-300: #FCA5A5;
+  --color-red-400: #F87171;
+  --color-red-500: #DC2626;
+  --color-red-600: #B91C1C;
+  --color-red-700: #991B1B;
+  --color-red-bright: #EF4444;
   --color-dark-charcoal: #1A1A2E;
   --color-dark-navy: #16213E;
 }
@@ -138,13 +138,13 @@
 
 @layer utilities {
   .gradient-primary {
-    background: linear-gradient(135deg, #FF6B00 0%, #FF3D00 100%);
+    background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
   }
   .gradient-dark {
     background: linear-gradient(135deg, #1A1A2E 0%, #16213E 100%);
   }
   .text-gradient {
-    background: linear-gradient(135deg, #FF6B00 0%, #FF3D00 100%);
+    background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

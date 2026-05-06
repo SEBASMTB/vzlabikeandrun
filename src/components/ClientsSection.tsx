@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SectionHeading } from "./SectionHeading";
 
 const partners = [
-  { name: "Maratón de Caracas", color: "bg-orange-500" },
+  { name: "Maratón de Caracas", color: "bg-red-500" },
   { name: "Farmaluna", color: "bg-emerald-500" },
   { name: "Women's Run VE", color: "bg-pink-500" },
   { name: "Ministerio del Deporte", color: "bg-red-600" },
@@ -88,7 +88,7 @@ export function ClientsSection() {
         {/* Testimonials */}
         <div className="max-w-3xl mx-auto">
           <div className="relative bg-gray-50 rounded-2xl p-8 md:p-12">
-            <Quote className="size-10 text-orange-300 mb-4" />
+            <Quote className="size-10 text-red-300 mb-4" />
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentTestimonial}
@@ -128,7 +128,7 @@ export function ClientsSection() {
                     onClick={() => setCurrentTestimonial(i)}
                     className={`w-2.5 h-2.5 rounded-full transition-colors ${
                       i === currentTestimonial
-                        ? "bg-orange-500"
+                        ? "bg-red-500"
                         : "bg-gray-300"
                     }`}
                     aria-label={`Testimonial ${i + 1}`}

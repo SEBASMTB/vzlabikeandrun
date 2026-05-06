@@ -22,14 +22,14 @@ export interface EventCardProps {
 }
 
 const categoryColors: Record<string, string> = {
-  Carrera: "bg-orange-100 text-orange-700 border-orange-200",
+  Carrera: "bg-red-100 text-red-700 border-red-200",
   Triatlón: "bg-emerald-100 text-emerald-700 border-emerald-200",
   Virtual: "bg-violet-100 text-violet-700 border-violet-200",
   MTB: "bg-amber-100 text-amber-700 border-amber-200",
 };
 
 const categoryGradients: Record<string, string> = {
-  Carrera: "from-orange-500 to-red-500",
+  Carrera: "from-red-500 to-red-500",
   Triatlón: "from-emerald-500 to-teal-500",
   Virtual: "from-violet-500 to-purple-500",
   MTB: "from-amber-500 to-yellow-500",
@@ -54,8 +54,8 @@ export function EventCard({
   featured,
   onRegister,
 }: EventCardProps) {
-  const gradientClass = categoryGradients[category] || "from-orange-500 to-red-500";
-  const colorClass = categoryColors[category] || "bg-orange-100 text-orange-700";
+  const gradientClass = categoryGradients[category] || "from-red-500 to-red-500";
+  const colorClass = categoryColors[category] || "bg-red-100 text-red-700";
 
   return (
     <motion.div
@@ -85,14 +85,14 @@ export function EventCard({
 
         {/* Featured Badge */}
         {featured && (
-          <Badge className="absolute top-3 right-3 bg-orange-500 text-white border-0 font-medium">
+          <Badge className="absolute top-3 right-3 bg-red-500 text-white border-0 font-medium">
             ⭐ Destacado
           </Badge>
         )}
 
         {/* Distance */}
         <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center gap-1.5">
-          <Ruler className="size-4 text-orange-600" />
+          <Ruler className="size-4 text-red-600" />
           <span className="text-sm font-bold text-foreground">{distance}</span>
         </div>
       </div>

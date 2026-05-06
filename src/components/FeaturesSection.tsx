@@ -78,7 +78,7 @@ export function FeaturesSection() {
             <motion.div
               key={feature.title}
               variants={itemVariants}
-              className="group relative bg-card rounded-2xl p-6 border shadow-sm hover:shadow-xl hover:border-orange-200 transition-all duration-300"
+              className="group relative bg-card rounded-2xl p-6 border shadow-sm hover:shadow-xl hover:border-red-200 transition-all duration-300"
             >
               <div className="w-14 h-14 gradient-primary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <feature.icon className="size-7 text-white" />

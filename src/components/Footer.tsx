@@ -37,12 +37,12 @@ export function Footer() {
           {/* Company Info */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">V</span>
               </div>
               <div>
                 <span className="font-bold text-base">
-                  VzlaBike<span className="text-orange-400"> and Run</span>
+                  VzlaBike<span className="text-red-400"> and Run</span>
                   <sup className="text-[8px]">®</sup>
                 </span>
               </div>
@@ -57,7 +57,7 @@ export function Footer() {
                 <a
                   key={social}
                   href="#"
-                  className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-white/70 hover:bg-orange-500 hover:text-white text-xs font-bold transition-colors"
+                  className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-white/70 hover:bg-red-500 hover:text-white text-xs font-bold transition-colors"
                 >
                   {social}
                 </a>
@@ -67,7 +67,7 @@ export function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h3 className="font-bold text-sm mb-4 text-orange-400 uppercase tracking-wider">
+            <h3 className="font-bold text-sm mb-4 text-red-400 uppercase tracking-wider">
               Enlaces Rápidos
             </h3>
             <ul className="space-y-2">
@@ -79,7 +79,7 @@ export function Footer() {
                       e.preventDefault();
                       handleScroll(link.href);
                     }}
-                    className="text-white/60 hover:text-orange-400 text-sm transition-colors"
+                    className="text-white/60 hover:text-red-400 text-sm transition-colors"
                   >
                     {link.label}
                   </a>
@@ -90,7 +90,7 @@ export function Footer() {
 
           {/* Services */}
           <div>
-            <h3 className="font-bold text-sm mb-4 text-orange-400 uppercase tracking-wider">
+            <h3 className="font-bold text-sm mb-4 text-red-400 uppercase tracking-wider">
               Servicios
             </h3>
             <ul className="space-y-2">
@@ -102,7 +102,7 @@ export function Footer() {
                       e.preventDefault();
                       handleScroll(link.href);
                     }}
-                    className="text-white/60 hover:text-orange-400 text-sm transition-colors"
+                    className="text-white/60 hover:text-red-400 text-sm transition-colors"
                   >
                     {link.label}
                   </a>
@@ -113,12 +113,12 @@ export function Footer() {
 
           {/* Contact */}
           <div>
-            <h3 className="font-bold text-sm mb-4 text-orange-400 uppercase tracking-wider">
+            <h3 className="font-bold text-sm mb-4 text-red-400 uppercase tracking-wider">
               Contacto
             </h3>
             <ul className="space-y-3">
               <li className="flex items-start gap-2">
-                <MapPin className="size-4 text-orange-400 shrink-0 mt-0.5" />
+                <MapPin className="size-4 text-red-400 shrink-0 mt-0.5" />
                 <span className="text-white/60 text-sm">
                   Caracas, Venezuela
                 </span>
@@ -126,18 +126,18 @@ export function Footer() {
               <li>
                 <a
                   href="tel:+584121234567"
-                  className="flex items-start gap-2 text-white/60 hover:text-orange-400 text-sm transition-colors"
+                  className="flex items-start gap-2 text-white/60 hover:text-red-400 text-sm transition-colors"
                 >
-                  <Phone className="size-4 text-orange-400 shrink-0 mt-0.5" />
+                  <Phone className="size-4 text-red-400 shrink-0 mt-0.5" />
                   +58 412-123-4567
                 </a>
               </li>
               <li>
                 <a
                   href="mailto:info@vzlabikeandrun.com"
-                  className="flex items-start gap-2 text-white/60 hover:text-orange-400 text-sm transition-colors"
+                  className="flex items-start gap-2 text-white/60 hover:text-red-400 text-sm transition-colors"
                 >
-                  <Mail className="size-4 text-orange-400 shrink-0 mt-0.5" />
+                  <Mail className="size-4 text-red-400 shrink-0 mt-0.5" />
                   info@vzlabikeandrun.com
                 </a>
               </li>

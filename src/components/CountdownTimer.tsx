@@ -88,7 +88,7 @@ export function CountdownTimer({
           <span
             className={`font-bold tabular-nums ${
               compact ? "text-lg" : "text-2xl md:text-3xl"
-            } bg-gradient-to-b from-orange-400 to-orange-600 text-white rounded-lg px-2 py-1 min-w-[40px] text-center`}
+            } bg-gradient-to-b from-red-400 to-red-600 text-white rounded-lg px-2 py-1 min-w-[40px] text-center`}
           >
             {String(unit.value).padStart(2, "0")}
           </span>

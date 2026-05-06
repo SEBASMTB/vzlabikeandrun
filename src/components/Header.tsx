@@ -66,7 +66,7 @@ export function Header() {
                     scrolled ? "text-foreground" : "text-white"
                   )}
                 >
-                  VzlaBike<span className="text-orange-500"> and Run</span>
+                  VzlaBike<span className="text-red-500"> and Run</span>
                   <sup className="text-[8px]">®</sup>
                 </span>
                 <span
@@ -93,7 +93,7 @@ export function Header() {
                   className={cn(
                     "px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-white/10",
                     scrolled
-                      ? "text-foreground hover:bg-orange-50 hover:text-orange-600"
+                      ? "text-foreground hover:bg-red-50 hover:text-red-600"
                       : "text-white/90 hover:text-white"
                   )}
                 >
@@ -166,7 +166,7 @@ export function Header() {
                       e.preventDefault();
                       handleNavClick(link.href);
                     }}
-                    className="px-4 py-3 text-foreground font-medium rounded-md hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                    className="px-4 py-3 text-foreground font-medium rounded-md hover:bg-red-50 hover:text-red-600 transition-colors"
                   >
                     {link.label}
                   </a>

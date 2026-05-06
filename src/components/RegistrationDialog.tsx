@@ -193,7 +193,7 @@ export function RegistrationDialog({
             <div key={step.label} className="flex items-center flex-1">
               <div
                 className={`flex items-center gap-2 cursor-pointer ${
-                  i <= currentStep ? "text-orange-500" : "text-muted-foreground"
+                  i <= currentStep ? "text-red-500" : "text-muted-foreground"
                 }`}
                 onClick={() => {
                   if (i < currentStep) setCurrentStep(i);
@@ -444,11 +444,11 @@ export function RegistrationDialog({
               </div>
 
               {/* Summary */}
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mt-4">
-                <h4 className="font-semibold text-sm mb-2 text-orange-800">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
+                <h4 className="font-semibold text-sm mb-2 text-red-800">
                   Resumen de Inscripción
                 </h4>
-                <div className="space-y-1 text-sm text-orange-700">
+                <div className="space-y-1 text-sm text-red-700">
                   <p>
                     <strong>Evento:</strong> {event?.title}
                   </p>

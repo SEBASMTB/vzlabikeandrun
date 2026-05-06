@@ -71,7 +71,7 @@ const equipmentProducts = [
     title: "Custom Shoe Tag",
     description: "TAG personalizado para calzado deportivo. Cómodo y fácil de colocar.",
     badge: "Running",
-    badgeColor: "bg-orange-100 text-orange-700",
+    badgeColor: "bg-red-100 text-red-700",
   },
   {
     icon: MonitorSmartphone,
@@ -111,7 +111,7 @@ export function ServicesSection() {
         >
           {timingServices.map((service) => (
             <motion.div key={service.title} variants={itemVariants}>
-              <Card className="h-full hover:shadow-lg hover:border-orange-200 transition-all duration-300">
+              <Card className="h-full hover:shadow-lg hover:border-red-200 transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center mb-4">
                     <service.icon className="size-6 text-white" />
@@ -143,7 +143,7 @@ export function ServicesSection() {
         >
           {equipmentProducts.map((product) => (
             <motion.div key={product.title} variants={itemVariants}>
-              <Card className="h-full hover:shadow-lg hover:border-orange-200 transition-all duration-300 overflow-hidden">
+              <Card className="h-full hover:shadow-lg hover:border-red-200 transition-all duration-300 overflow-hidden">
                 <CardContent className="p-6 flex gap-4">
                   <div className="w-14 h-14 gradient-primary rounded-xl flex items-center justify-center shrink-0">
                     <product.icon className="size-7 text-white" />
