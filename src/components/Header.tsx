@@ -56,28 +56,11 @@ export function Header() {
               }}
               className="flex items-center gap-2"
             >
-              <div className="w-10 h-10 gradient-primary rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">V</span>
-              </div>
-              <div className="flex flex-col">
-                <span
-                  className={cn(
-                    "font-bold text-sm md:text-base leading-tight transition-colors",
-                    scrolled ? "text-foreground" : "text-white"
-                  )}
-                >
-                  VzlaBike<span className="text-red-500"> and Run</span>
-                  <sup className="text-[8px]">®</sup>
-                </span>
-                <span
-                  className={cn(
-                    "text-[10px] leading-tight transition-colors",
-                    scrolled ? "text-muted-foreground" : "text-white/70"
-                  )}
-                >
-                  Cronometraje Deportivo
-                </span>
-              </div>
+              <img
+                src="/LOGOVBR.png"
+                alt="VzlaBike and Run"
+                className="h-10 md:h-12 w-auto object-contain"
+              />
             </a>
 
             {/* Desktop Nav */}
