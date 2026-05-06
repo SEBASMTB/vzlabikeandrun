@@ -97,14 +97,13 @@ export function HeroSection() {
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6">
-            Cronometraje Deportivo{" "}
-            <span className="text-gradient">Profesional</span>
+            <span className="text-gradient">25 Años</span> de Experiencia
           </h1>
 
           <p className="text-lg md:text-xl text-white/80 max-w-2xl mb-8">
-            Organizamos eventos deportivos con tecnología de punta. Carreras,
-            Triatlones, MTB y más. Resultados en tiempo real y experiencia
-            inigualable.
+            Cronometraje deportivo profesional y organización de eventos.
+            Carreras, Triatlones, MTB y más. Tecnología de punta y resultados
+            en tiempo real.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4">
@@ -154,7 +153,7 @@ export function HeroSection() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               <AnimatedCounter target={500} label="Eventos Organizados" suffix="+" />
               <AnimatedCounter target={50000} label="Participantes" suffix="+" />
-              <AnimatedCounter target={10} label="Años de Experiencia" suffix="+" />
+              <AnimatedCounter target={25} label="Años de Experiencia" suffix="+" />
               <div className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-white">24/7</div>
                 <div className="text-sm text-white/70 mt-1">Soporte Técnico</div>
