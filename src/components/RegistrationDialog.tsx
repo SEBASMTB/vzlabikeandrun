@@ -87,8 +87,8 @@ const paymentMethods: {
     label: "Binance",
     icon: Wallet,
     description: "Pago con criptomonedas vía Binance",
-    wallet: "vzlabike@binance.com",
-    instructions: "Envía USD a través de Binance Pay. El monto debe ser exacto.",
+    wallet: "Envía USDT (TRC20) o BNB al wallet indicado en la app Binance",
+    instructions: "Abre Binance, selecciona Retirar/Crypto y envía el monto exacto en USDT o BNB. Guarda el hash de la transacción como referencia.",
     color: "text-yellow-600",
     bg: "bg-yellow-50",
     border: "border-yellow-300",
@@ -98,8 +98,8 @@ const paymentMethods: {
     label: "Zelle",
     icon: CreditCard,
     description: "Pago rápido desde EE.UU.",
-    wallet: "vzlabikeandrun@gmail.com",
-    instructions: "Envía el pago vía Zelle al correo indicado. Recibirás confirmación en minutos.",
+    wallet: "venezuelabikeandrun@gmail.com - A nombre de: KARLA QUINTERO",
+    instructions: "Envía el pago vía Zelle al correo indicado a nombre de KARLA QUINTERO. Recibirás confirmación en minutos.",
     color: "text-purple-600",
     bg: "bg-purple-50",
     border: "border-purple-300",
@@ -109,8 +109,8 @@ const paymentMethods: {
     label: "Pago Móvil",
     icon: Smartphone,
     description: "Pago Móvil Venezuela",
-    wallet: "0412-016-2685 / Banco BNC / CI: V-00000000",
-    instructions: "Realiza el pago móvil con los datos indicados. Guarda el comprobante de pago.",
+    wallet: "Teléfono: 0412-016-2685 / CI: V-9479255",
+    instructions: "Realiza el Pago Móvil al teléfono 0412-016-2685 con CI V-9479255. Guarda el número de referencia de 6 dígitos.",
     color: "text-red-600",
     bg: "bg-red-50",
     border: "border-red-300",
@@ -120,8 +120,8 @@ const paymentMethods: {
     label: "Transferencia Bancaria",
     icon: Building2,
     description: "Transferencia bancaria nacional",
-    wallet: "Banco BNC / Accta: 0000-0000-00-0000000000 / CI: V-00000000",
-    instructions: "Realiza la transferencia y guarda el comprobante. La inscripción se confirma al verificar el pago.",
+    wallet: "Escríbenos por WhatsApp para los datos bancarios",
+    instructions: "Escríbenos al WhatsApp para recibir los datos de la cuenta bancaria y realizar tu transferencia. Envía foto del comprobante.",
     color: "text-blue-600",
     bg: "bg-blue-50",
     border: "border-blue-300",
@@ -196,6 +196,10 @@ export function RegistrationDialog({
         if (valid) setCurrentStep(3);
       });
     }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 0) setCurrentStep(currentStep - 1);
   };
 
   const copyToClipboard = (text: string) => {
