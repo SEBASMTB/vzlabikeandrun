@@ -32,6 +32,11 @@ import {
   ArrowLeft,
   CheckCircle2,
   Loader2,
+  CreditCard,
+  Wallet,
+  Smartphone,
+  Building2,
+  Copy,
 } from "lucide-react";
 import type { EventCardProps } from "./EventCard";
 
@@ -64,10 +69,70 @@ interface RegistrationDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type PaymentMethod = "binance" | "zelle" | "pagomovil" | "transferencia";
+
+const paymentMethods: {
+  id: PaymentMethod;
+  label: string;
+  icon: React.ElementType;
+  description: string;
+  wallet: string;
+  instructions: string;
+  color: string;
+  bg: string;
+  border: string;
+}[] = [
+  {
+    id: "binance",
+    label: "Binance",
+    icon: Wallet,
+    description: "Pago con criptomonedas vía Binance",
+    wallet: "vzlabike@binance.com",
+    instructions: "Envía USD a través de Binance Pay. El monto debe ser exacto.",
+    color: "text-yellow-600",
+    bg: "bg-yellow-50",
+    border: "border-yellow-300",
+  },
+  {
+    id: "zelle",
+    label: "Zelle",
+    icon: CreditCard,
+    description: "Pago rápido desde EE.UU.",
+    wallet: "vzlabikeandrun@gmail.com",
+    instructions: "Envía el pago vía Zelle al correo indicado. Recibirás confirmación en minutos.",
+    color: "text-purple-600",
+    bg: "bg-purple-50",
+    border: "border-purple-300",
+  },
+  {
+    id: "pagomovil",
+    label: "Pago Móvil",
+    icon: Smartphone,
+    description: "Pago Móvil Venezuela",
+    wallet: "0412-016-2685 / Banco BNC / CI: V-00000000",
+    instructions: "Realiza el pago móvil con los datos indicados. Guarda el comprobante de pago.",
+    color: "text-red-600",
+    bg: "bg-red-50",
+    border: "border-red-300",
+  },
+  {
+    id: "transferencia",
+    label: "Transferencia Bancaria",
+    icon: Building2,
+    description: "Transferencia bancaria nacional",
+    wallet: "Banco BNC / Accta: 0000-0000-00-0000000000 / CI: V-00000000",
+    instructions: "Realiza la transferencia y guarda el comprobante. La inscripción se confirma al verificar el pago.",
+    color: "text-blue-600",
+    bg: "bg-blue-50",
+    border: "border-blue-300",
+  },
+];
+
 const steps = [
   { label: "Datos Personales", icon: User },
-  { label: "Información de Carrera", icon: MapPin },
-  { label: "Contacto de Emergencia", icon: Phone },
+  { label: "Categoría", icon: MapPin },
+  { label: "Emergencia", icon: Phone },
+  { label: "Método de Pago", icon: CreditCard },
 ];
 
 export function RegistrationDialog({
@@ -77,6 +142,8 @@ export function RegistrationDialog({
 }: RegistrationDialogProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
+  const [paymentRef, setPaymentRef] = useState("");
   const { toast } = useToast();
 
   const personalForm = useForm<PersonalInfo>({
@@ -106,6 +173,8 @@ export function RegistrationDialog({
     raceForm.reset();
     emergencyForm.reset();
     setCurrentStep(0);
+    setSelectedPayment(null);
+    setPaymentRef("");
   };
 
   const handleClose = (val: boolean) => {
@@ -115,28 +184,31 @@ export function RegistrationDialog({
 
   const handleNext = () => {
     if (currentStep === 0) {
-      const result = personalForm.formState;
       personalForm.trigger().then((valid) => {
-        if (valid) {
-          setCurrentStep(1);
-        }
+        if (valid) setCurrentStep(1);
       });
     } else if (currentStep === 1) {
       raceForm.trigger().then((valid) => {
         if (valid) setCurrentStep(2);
       });
+    } else if (currentStep === 2) {
+      emergencyForm.trigger().then((valid) => {
+        if (valid) setCurrentStep(3);
+      });
     }
   };
 
-  const handleBack = () => {
-    if (currentStep > 0) setCurrentStep(currentStep - 1);
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast({
+        title: "Copiado",
+        description: "Se copió al portapapeles.",
+      });
+    });
   };
 
   const handleSubmit = async () => {
-    if (!event?.slug) return;
-
-    const emergencyValid = await emergencyForm.trigger();
-    if (!emergencyValid) return;
+    if (!event?.slug || !selectedPayment) return;
 
     setSubmitting(true);
 
@@ -148,15 +220,18 @@ export function RegistrationDialog({
           ...personalForm.getValues(),
           ...raceForm.getValues(),
           ...emergencyForm.getValues(),
+          paymentMethod: selectedPayment,
+          paymentRef: paymentRef,
         }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
+        const payLabel = paymentMethods.find((p) => p.id === selectedPayment)?.label;
         toast({
-          title: "¡Inscripción Exitosa! 🎉",
-          description: `Te has inscrito en ${event.title}. Tu número de dorsal es #${data.bibNumber}. Revisa tu email para más detalles.`,
+          title: "¡Inscripción Recibida!",
+          description: `Te has inscrito en ${event.title}. Tu dorsal es #${data.bibNumber}. Completa el pago con ${payLabel} y envía tu comprobante para confirmar.`,
         });
         handleClose(false);
       } else {
@@ -176,6 +251,8 @@ export function RegistrationDialog({
       setSubmitting(false);
     }
   };
+
+  const currentPayment = paymentMethods.find((p) => p.id === selectedPayment);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -442,9 +519,101 @@ export function RegistrationDialog({
                   </p>
                 )}
               </div>
+            </motion.div>
+          )}
+
+          {/* Step 4: Payment Method */}
+          {currentStep === 3 && (
+            <motion.div
+              key="step4"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-4"
+            >
+              {/* Amount to pay */}
+              <div className="gradient-primary rounded-lg p-4 text-white text-center">
+                <p className="text-sm opacity-90">Monto a pagar</p>
+                <p className="text-3xl font-bold">${event?.price} USD</p>
+                <p className="text-sm opacity-80">{event?.title}</p>
+              </div>
+
+              {/* Payment method selection */}
+              <p className="text-sm font-medium text-foreground">
+                Selecciona tu método de pago:
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {paymentMethods.map((pm) => {
+                  const Icon = pm.icon;
+                  return (
+                    <button
+                      key={pm.id}
+                      type="button"
+                      onClick={() => setSelectedPayment(pm.id)}
+                      className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 ${
+                        selectedPayment === pm.id
+                          ? `${pm.bg} ${pm.border} ${pm.color} shadow-md`
+                          : "bg-white border-gray-200 hover:border-gray-300 text-foreground"
+                      }`}
+                    >
+                      {selectedPayment === pm.id && (
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                          <CheckCircle2 className="size-4 text-white" />
+                        </div>
+                      )}
+                      <Icon className="size-8" />
+                      <span className="text-xs font-bold">{pm.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Payment details */}
+              {currentPayment && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`${currentPayment.bg} border ${currentPayment.border} rounded-lg p-4`}
+                >
+                  <h4 className={`font-semibold text-sm mb-2 ${currentPayment.color}`}>
+                    Datos para pagar con {currentPayment.label}
+                  </h4>
+                  <div className="flex items-center gap-2 bg-white rounded-md p-3 mb-2">
+                    <code className="text-xs flex-1 break-all text-foreground">
+                      {currentPayment.wallet}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(currentPayment.wallet)}
+                      className="shrink-0 p-1.5 rounded-md hover:bg-gray-100 transition-colors"
+                    >
+                      <Copy className="size-4 text-muted-foreground" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {currentPayment.instructions}
+                  </p>
+                </motion.div>
+              )}
+
+              {/* Payment reference */}
+              <div className="space-y-2">
+                <Label htmlFor="paymentRef">
+                  Número de referencia / Comprobante
+                </Label>
+                <Input
+                  id="paymentRef"
+                  placeholder="Ej: 000012345678"
+                  value={paymentRef}
+                  onChange={(e) => setPaymentRef(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Ingresa el número de referencia de tu pago para agilizar la confirmación.
+                </p>
+              </div>
 
               {/* Summary */}
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-2">
                 <h4 className="font-semibold text-sm mb-2 text-red-800">
                   Resumen de Inscripción
                 </h4>
@@ -461,7 +630,8 @@ export function RegistrationDialog({
                     <strong>Categoría:</strong> {raceForm.getValues().category}
                   </p>
                   <p>
-                    <strong>Precio:</strong> ${event?.price} USD
+                    <strong>Pago:</strong> ${event?.price} USD via{" "}
+                    {currentPayment?.label}
                   </p>
                 </div>
               </div>
@@ -479,7 +649,7 @@ export function RegistrationDialog({
             <ArrowLeft className="size-4 mr-2" />
             Anterior
           </Button>
-          {currentStep < 2 ? (
+          {currentStep < 3 ? (
             <Button
               className="gradient-primary text-white border-0"
               onClick={handleNext}
@@ -491,7 +661,7 @@ export function RegistrationDialog({
             <Button
               className="gradient-primary text-white border-0"
               onClick={handleSubmit}
-              disabled={submitting}
+              disabled={submitting || !selectedPayment}
             >
               {submitting ? (
                 <>

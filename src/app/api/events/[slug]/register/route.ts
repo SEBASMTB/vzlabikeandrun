@@ -19,11 +19,20 @@ export async function POST(
       team,
       emergencyContact,
       emergencyPhone,
+      paymentMethod,
+      paymentRef,
     } = body;
 
     if (!firstName || !lastName || !email || !phone || !gender || !dateOfBirth || !category) {
       return NextResponse.json(
         { error: "Faltan campos requeridos" },
+        { status: 400 }
+      );
+    }
+
+    if (!paymentMethod) {
+      return NextResponse.json(
+        { error: "Selecciona un método de pago" },
         { status: 400 }
       );
     }
@@ -73,7 +82,9 @@ export async function POST(
         team: team || "",
         emergencyContact: emergencyContact || "",
         emergencyPhone: emergencyPhone || "",
-        status: "confirmed",
+        paymentMethod: paymentMethod || "",
+        paymentRef: paymentRef || "",
+        status: "pending",
         bibNumber,
       },
     });

@@ -40,6 +40,8 @@ model Registration {
   team             String   @default("")
   emergencyContact String   @default("")
   emergencyPhone   String   @default("")
+  paymentMethod    String   @default("")
+  paymentRef       String   @default("")
   status           String   @default("pending")
   bibNumber        Int?
   createdAt        DateTime @default(now())
