@@ -23,8 +23,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       title, slug, description, date, location, distance, category,
-      imageUrl, price, maxParticipants, featured, status,
-      organizer, prizes, rules, kitInfo, sponsors,
+      sportType, imageUrl, bannerImage, price, priceBs,
+      maxParticipants, featured, status,
+      organizer, prizes, rules, kitInfo, sponsors, categories,
     } = body;
 
     if (!title || !slug || !date || !location || !distance || !category) {
@@ -42,9 +43,12 @@ export async function POST(request: NextRequest) {
         date: new Date(date),
         location,
         distance,
-        category,
+        category: category || "running",
+        sportType: sportType || category || "running",
         imageUrl: imageUrl || "",
+        bannerImage: bannerImage || "",
         price: price || 0,
+        priceBs: priceBs || 0,
         maxParticipants: maxParticipants || 500,
         featured: featured || false,
         status: status || "upcoming",
@@ -53,6 +57,7 @@ export async function POST(request: NextRequest) {
         rules: rules || "",
         kitInfo: kitInfo || "",
         sponsors: sponsors || "",
+        categories: categories || "",
       },
     });
 

@@ -61,8 +61,11 @@ export async function PUT(
         location: body.location,
         distance: body.distance,
         category: body.category,
+        sportType: body.sportType,
         imageUrl: body.imageUrl,
+        bannerImage: body.bannerImage,
         price: body.price,
+        priceBs: body.priceBs,
         status: body.status,
         maxParticipants: body.maxParticipants,
         featured: body.featured,
@@ -71,6 +74,7 @@ export async function PUT(
         rules: body.rules,
         kitInfo: body.kitInfo,
         sponsors: body.sponsors,
+        categories: body.categories,
       },
     });
 

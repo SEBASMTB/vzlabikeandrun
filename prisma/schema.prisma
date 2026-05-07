@@ -15,9 +15,12 @@ model Event {
   date            DateTime
   location        String
   distance        String
-  category        String
+  category        String          @default("running")
+  sportType       String          @default("running")
   imageUrl        String          @default("")
+  bannerImage     String          @default("")
   price           Float           @default(0)
+  priceBs         Float           @default(0)
   status          String          @default("upcoming")
   maxParticipants Int             @default(500)
   featured        Boolean         @default(false)
@@ -25,8 +28,9 @@ model Event {
   prizes          String          @default("")
   rules           String          @default("")
   kitInfo         String          @default("")
- sponsors        String          @default("")
- createdAt       DateTime        @default(now())
+  sponsors        String          @default("")
+  categories      String          @default("")
+  createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   registrations   Registration[]
 }
