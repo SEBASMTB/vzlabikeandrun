@@ -140,9 +140,10 @@ export default function AdminInscripcionesPage() {
       const res = await fetch(`/api/admin/registrations?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
-        setRegistrations(data.registrations);
-        setTotal(data.total);
-        setTotalPages(data.totalPages);
+        setRegistrations(data.registrations || []);
+        const pag = data.pagination || data;
+        setTotal(pag.total || 0);
+        setTotalPages(pag.totalPages || 0);
       }
     } catch {
       // Silently handle
