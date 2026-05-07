@@ -138,11 +138,15 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { authState, checkAndSet } = useAuthState();
   const redirectAttempted = useRef(false);
 
+  const isLoginPage = pathname === "/admin/login";
+
   useEffect(() => {
+    if (isLoginPage) return; // Skip auth check on login page
     if (redirectAttempted.current) return;
     redirectAttempted.current = true;
 
@@ -155,7 +159,12 @@ export default function AdminLayout({
     });
 
     return () => cancelAnimationFrame(id);
-  }, [router, checkAndSet]);
+  }, [router, checkAndSet, isLoginPage]);
+
+  // Login page: render without sidebar
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   if (!authState.checked) {
     return (
