@@ -39,12 +39,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // If authenticated and on login page, redirect to dashboard
-  if (hasValidToken && isLoginPage) {
-    const dashboardUrl = new URL("/admin", request.url);
-    return NextResponse.redirect(dashboardUrl);
-  }
-
   return NextResponse.next();
 }
 
