@@ -1,72 +1,30 @@
-# VzlaBike and Run® - Worklog
-
-## Build Summary
-
-### Date: 2024
-
-### Project Overview
-Complete redesign of the VzlaBike and Run website - a sports event management company in Venezuela. Built as a single-page application with Next.js 16 App Router.
-
 ---
+Task ID: 1
+Agent: Main Agent
+Task: Continue building VzlaBike and Run website - Admin Panel implementation
 
-## Files Created/Modified
+Work Log:
+- Reviewed full project state (all files, components, API routes, database schema)
+- Confirmed LiabilityWaiver already integrated in registration form (Step 3) with dynamic event title, date, organizer substitution
+- Created Admin Panel API routes (auth, stats, events CRUD, registrations management, logout)
+- Created Admin Panel pages (login, dashboard, event management, registration management)
+- Fixed integration issues between two parallel sub-agents:
+  - Fixed auth route to use createToken() and comparePassword() from auth.ts
+  - Fixed comparePassword() timing-safe comparison logic (was returning true for wrong passwords)
+  - Fixed stats route to use requireAuth() and optimized revenue calculation (removed N+1 queries)
+  - Fixed registrations route to use requireAuth()
+  - Created /api/admin/logout POST endpoint for sidebar logout
+  - Fixed admin layout sidebar to call POST /api/admin/logout
+  - Fixed auth.ts to use request.cookies instead of async cookies() (Next.js 16 breaking change)
+  - Updated public events POST route to accept all fields (organizer, prizes, rules, kitInfo, sponsors)
+- Re-seeded database with 6 sample events
+- Verified all APIs work: login, bad password rejection, stats, registrations, events CRUD
 
-### Database & API
-- **`prisma/schema.prisma`** - Updated with Event and Registration models
-- **`prisma/seed.ts`** - Seed file with 6 sample events (WOMENS RUN, 21K LA AUTOPISTA, FARMALUNA 10K, LA RUTA DIGITAL, MARATÓN DE CARACAS, TRIATLÓN VZLA)
-- **`package.json`** - Added seed script
-- **`src/app/api/events/route.ts`** - GET all events, POST new event
-- **`src/app/api/events/[slug]/route.ts`** - GET single event by slug
-- **`src/app/api/events/[slug]/register/route.ts`** - POST registration for an event
-- **`src/app/api/registrations/route.ts`** - GET registrations with optional event filter
-
-### Layout & Styling
-- **`src/app/globals.css`** - Sporty orange/red color scheme, gradient utilities, smooth scroll
-- **`src/app/layout.tsx`** - Inter font, Spanish lang, SEO metadata, Toaster
-
-### Components (13 files)
-- **`src/components/SectionHeading.tsx`** - Reusable section title with orange underline
-- **`src/components/CountdownTimer.tsx`** - Real-time countdown using useSyncExternalStore
-- **`src/components/Header.tsx`** - Sticky header, transparent→solid on scroll, mobile hamburger menu
-- **`src/components/HeroSection.tsx`** - Full-screen hero with animated counters and countdown
-- **`src/components/FeaturesSection.tsx`** - 6 feature cards with icons
-- **`src/components/EventCard.tsx`** - Event card with image, countdown, price, register button
-- **`src/components/EventsSection.tsx`** - Events grid with API fetch and registration dialog
-- **`src/components/RegistrationDialog.tsx`** - 3-step form (personal → race → emergency) with zod validation
-- **`src/components/ServicesSection.tsx`** - Timing services + equipment products
-- **`src/components/PlatformSection.tsx`** - VBRWorks® platform showcase with mock dashboard
-- **`src/components/ClientsSection.tsx`** - Partner logos grid + testimonial carousel
-- **`src/components/ContactSection.tsx`** - Contact form with validation + info cards + social media
-- **`src/components/Footer.tsx`** - 4-column footer with back-to-top
-
-### Main Page
-- **`src/app/page.tsx`** - Single-page layout assembling all sections
-
-### Generated Images (7 files)
-- **`public/hero-bg.jpg`** - 1344x768 hero background
-- **`public/event-womens-run.jpg`** - Women's race event
-- **`public/event-21k-autopista.jpg`** - Highway half marathon
-- **`public/event-farmaluna.jpg`** - Night running event
-- **`public/event-ruta-digital.jpg`** - Virtual race concept
-- **`public/event-maraton-caracas.jpg`** - Caracas marathon
-- **`public/event-triatlon.jpg`** - Olympic triathlon
-
----
-
-## Technical Highlights
-
-- **Color Scheme**: Orange (#FF6B00) primary, Red-orange (#FF3D00) accent, Dark charcoal (#1A1A2E) secondary
-- **Animations**: Framer Motion for scroll-triggered animations, staggered reveals
-- **Forms**: react-hook-form + zod v4 validation on both registration dialog and contact form
-- **Countdown**: Real-time using useSyncExternalStore (hydration-safe)
-- **API**: Full CRUD for events and registrations via Prisma ORM + SQLite
-- **Responsive**: Mobile-first design with Tailwind CSS breakpoints
-- **Accessibility**: Semantic HTML, ARIA labels, keyboard navigation
-- **All content in Spanish** as requested
-
-## Database
-- 6 events seeded successfully
-- Registration API validates duplicates, capacity limits, and generates bib numbers
-
-## Lint Status
-- ✅ ESLint passes with zero errors and zero warnings
+Stage Summary:
+- Admin Panel fully functional at /admin with password protection (default: vzlabike2024)
+- Dashboard shows: total events, registrations, confirmed, estimated revenue, recent registrations, events with counts
+- Event management: create, edit, delete events with full form (title, slug, date, location, distance, category, price, status, max participants, organizer, description, prizes, rules, kit info, featured)
+- Registration management: list with filters (event, status, search), pagination, status update (confirm/reject), detail view
+- All admin APIs protected with token-based auth (httpOnly cookie, 24h expiry)
+- Production build compiles successfully with zero errors
+- 18 routes total (7 admin pages, 8 API endpoints, 3 existing)

@@ -5,6 +5,9 @@ export async function GET() {
   try {
     const events = await db.event.findMany({
       orderBy: { date: "asc" },
+      include: {
+        _count: { select: { registrations: true } },
+      },
     });
     return NextResponse.json(events);
   } catch {
@@ -18,7 +21,11 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, slug, description, date, location, distance, category, imageUrl, price, maxParticipants, featured } = body;
+    const {
+      title, slug, description, date, location, distance, category,
+      imageUrl, price, maxParticipants, featured, status,
+      organizer, prizes, rules, kitInfo, sponsors,
+    } = body;
 
     if (!title || !slug || !date || !location || !distance || !category) {
       return NextResponse.json(
@@ -40,6 +47,12 @@ export async function POST(request: NextRequest) {
         price: price || 0,
         maxParticipants: maxParticipants || 500,
         featured: featured || false,
+        status: status || "upcoming",
+        organizer: organizer || "",
+        prizes: prizes || "",
+        rules: rules || "",
+        kitInfo: kitInfo || "",
+        sponsors: sponsors || "",
       },
     });
 
