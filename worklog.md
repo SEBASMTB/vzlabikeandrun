@@ -28,3 +28,48 @@ Stage Summary:
 - All admin APIs protected with token-based auth (httpOnly cookie, 24h expiry)
 - Production build compiles successfully with zero errors
 - 18 routes total (7 admin pages, 8 API endpoints, 3 existing)
+
+---
+Task ID: 2
+Agent: Fix Agent
+Task: Fix blank white screen on deployment
+
+Work Log:
+- Read worklog and understood previous admin panel implementation
+- Read all critical files: next.config.ts, package.json, layout.tsx, page.tsx, globals.css, all components
+- Analyzed all 15+ source files in app/ directory recursively
+- Checked all API routes for potential issues
+- Built and tested standalone server locally - confirmed HTML/CSS/JS all served correctly (83KB HTML, 129KB CSS)
+- Identified multiple issues causing blank screen:
+
+Issue 1: Tailwind v3/v4 config conflict (CRITICAL)
+- tailwind.config.ts was a Tailwind v3 config with hsl() color wrappers and content paths missing src/
+- Project uses Tailwind v4 with CSS-first config (@import "tailwindcss" + @theme inline)
+- The v3 config defined colors as hsl(var(--background)) but globals.css uses oklch() values
+- hsl(var(--sidebar-border)) and hsl(var(--sidebar-accent)) leaked into built CSS (invalid CSS)
+- Removed tailwind.config.ts entirely to eliminate conflict
+
+Issue 2: Missing error boundaries (CRITICAL)
+- No error.tsx or global-error.tsx existed in the app directory
+- Any React hydration error would unmount the entire component tree → blank page
+- Added error.tsx (client error boundary with retry button)
+- Added global-error.tsx (catches root-level errors)
+- Added not-found.tsx (custom 404 page)
+
+Issue 3: Build script missing database files
+- Build script only copied .next/static and public/ to standalone output
+- Did not copy prisma/schema.prisma or db/custom.db needed at runtime
+- Updated build script to also copy prisma/ and db/ directories
+
+Issue 4: Prisma query logging in production
+- db.ts had log: ['query'] enabled unconditionally, causing performance overhead
+- Fixed to only enable in development mode
+
+Stage Summary:
+- Removed conflicting tailwind.config.ts (Tailwind v3 artifact in v4 project)
+- Added error.tsx, global-error.tsx, not-found.tsx error boundaries
+- Updated build script to copy prisma/ and db/ to standalone output
+- Fixed Prisma production logging
+- Build succeeds with 15 routes, 0 errors
+- Standalone server serves valid HTML (83KB), CSS (129KB), and JS correctly
+- Error boundaries ensure any runtime error shows a user-friendly message instead of blank screen
