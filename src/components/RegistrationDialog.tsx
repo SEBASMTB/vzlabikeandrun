@@ -338,6 +338,41 @@ export function RegistrationDialog({
               exit={{ opacity: 0, x: -20 }}
               className="space-y-4"
             >
+              {/* CÉDULA - PRIMER CAMPO con auto-búsqueda */}
+              <div className="space-y-2">
+                <Label htmlFor="idNumber" className="flex items-center gap-2">
+                  Cédula de Identidad *
+                  {lookingUp && (
+                    <Loader2 className="size-3 animate-spin text-muted-foreground" />
+                  )}
+                  {autoFilled && (
+                    <span className="flex items-center gap-1 text-xs text-green-600 font-normal">
+                      <Sparkles className="size-3" /> Datos cargados
+                    </span>
+                  )}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="idNumber"
+                    placeholder="V-12345678"
+                    {...personalForm.register("idNumber")}
+                    onBlur={handleIdNumberBlur}
+                    className={autoFilled ? "border-green-400 bg-green-50/50" : ""}
+                  />
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {autoFilled
+                    ? "Se completaron tus datos automáticamente. Verifica y corrige si es necesario."
+                    : "Coloca tu cédula y buscaremos tus datos de inscripciones anteriores."}
+                </p>
+                {personalForm.formState.errors.idNumber && (
+                  <p className="text-sm text-destructive">
+                    {personalForm.formState.errors.idNumber.message}
+                  </p>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">Nombre *</Label>
@@ -396,20 +431,6 @@ export function RegistrationDialog({
                     </p>
                   )}
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="idNumber">Cédula de Identidad *</Label>
-                <Input
-                  id="idNumber"
-                  placeholder="V-12345678"
-                  {...personalForm.register("idNumber")}
-                />
-                {personalForm.formState.errors.idNumber && (
-                  <p className="text-sm text-destructive">
-                    {personalForm.formState.errors.idNumber.message}
-                  </p>
-                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

@@ -65,13 +65,13 @@ export async function POST(
       );
     }
 
-    // Check duplicate email
+    // Check duplicate idNumber (cédula) for the same event
     const existingReg = await db.registration.findFirst({
-      where: { eventId: event.id, email },
+      where: { eventId: event.id, idNumber: (idNumber || "").toUpperCase() },
     });
     if (existingReg) {
       return NextResponse.json(
-        { error: "Ya existe una inscripción con este email para este evento" },
+        { error: "Ya existe una inscripción con esta cédula de identidad para este evento" },
         { status: 400 }
       );
     }

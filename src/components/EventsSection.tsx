@@ -1,18 +1,29 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
-import { CalendarDays, ArrowRight, Flame } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { CalendarDays, ArrowRight, Flame, User, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { SectionHeading } from "./SectionHeading";
 import { EventCard, type EventCardProps } from "./EventCard";
 import { RegistrationDialog } from "./RegistrationDialog";
+import { GroupRegistrationDialog } from "./GroupRegistrationDialog";
+
+type RegistrationType = "individual" | "group" | null;
 
 export function EventsSection() {
   const [events, setEvents] = useState<EventCardProps[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<EventCardProps | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [registrationType, setRegistrationType] = useState<RegistrationType>(null);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -34,7 +45,30 @@ export function EventsSection() {
 
   const handleRegister = (event: EventCardProps) => {
     setSelectedEvent(event);
+    setRegistrationType(null);
     setDialogOpen(true);
+  };
+
+  const handleChooseType = (type: RegistrationType) => {
+    setRegistrationType(type);
+  };
+
+  const handleBackToTypeSelection = () => {
+    setRegistrationType(null);
+  };
+
+  const handleIndividualClose = (open: boolean) => {
+    if (!open) {
+      setRegistrationType(null);
+      setDialogOpen(false);
+    }
+  };
+
+  const handleGroupClose = (open: boolean) => {
+    if (!open) {
+      setRegistrationType(null);
+      setDialogOpen(false);
+    }
   };
 
   return (
@@ -114,11 +148,90 @@ export function EventsSection() {
         </motion.div>
       </div>
 
-      <RegistrationDialog
-        event={selectedEvent}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-      />
+      {/* Registration Type Chooser Dialog */}
+      <Dialog open={dialogOpen && registrationType === null} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedEvent(null);
+          setRegistrationType(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tipo de Inscripción</DialogTitle>
+            <DialogDescription>
+              {selectedEvent?.title} — {selectedEvent?.distance}
+            </DialogDescription>
+          </DialogHeader>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key="type-selection"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-4 py-4"
+            >
+              <p className="text-sm text-muted-foreground text-center mb-6">
+                ¿Cómo deseas inscribirte?
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Individual */}
+                <button
+                  type="button"
+                  onClick={() => handleChooseType("individual")}
+                  className="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 hover:border-red-300 hover:bg-red-50/50 transition-all duration-200"
+                >
+                  <div className="w-16 h-16 rounded-full bg-red-100 group-hover:bg-red-200 flex items-center justify-center transition-colors">
+                    <User className="size-8 text-red-600" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-bold text-foreground">Individual</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Inscripción para 1 persona
+                    </p>
+                  </div>
+                </button>
+
+                {/* Grupal */}
+                <button
+                  type="button"
+                  onClick={() => handleChooseType("group")}
+                  className="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all duration-200"
+                >
+                  <div className="w-16 h-16 rounded-full bg-emerald-100 group-hover:bg-emerald-200 flex items-center justify-center transition-colors">
+                    <Users className="size-8 text-emerald-600" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-bold text-foreground">Grupal</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      De 2 a 10 personas
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </DialogContent>
+      </Dialog>
+
+      {/* Individual Registration Dialog */}
+      {registrationType === "individual" && (
+        <RegistrationDialog
+          event={selectedEvent}
+          open={dialogOpen}
+          onOpenChange={handleIndividualClose}
+        />
+      )}
+
+      {/* Group Registration Dialog */}
+      {registrationType === "group" && (
+        <GroupRegistrationDialog
+          event={selectedEvent}
+          open={dialogOpen}
+          onOpenChange={handleGroupClose}
+        />
+      )}
     </section>
   );
 }

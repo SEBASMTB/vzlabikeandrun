@@ -18,6 +18,8 @@ export interface EventCardProps {
   imageUrl: string;
   price: number;
   featured?: boolean;
+  sportType?: string;
+  bannerImage?: string;
   onRegister?: (event: EventCardProps) => void;
 }
 
