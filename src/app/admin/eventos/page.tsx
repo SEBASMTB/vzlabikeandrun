@@ -204,6 +204,7 @@ export default function AdminEventosPage() {
   const [formData, setFormData] = useState<FormData>(emptyForm);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [formError, setFormError] = useState("");
   const imageInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
@@ -230,6 +231,7 @@ export default function AdminEventosPage() {
   const handleNew = () => {
     setEditingEvent(null);
     setFormData(emptyForm);
+    setFormError("");
     setDialogOpen(true);
   };
 
@@ -258,6 +260,7 @@ export default function AdminEventosPage() {
       sponsors: event.sponsors || "",
       categories: event.categories || "",
     });
+    setFormError("");
     setDialogOpen(true);
   };
 
@@ -343,7 +346,9 @@ export default function AdminEventosPage() {
 
   // ---- Submit ----
   const handleSubmit = async () => {
+    setFormError("");
     if (!formData.title || !formData.slug || !formData.date || !formData.location || !formData.distance) {
+      setFormError("Completa todos los campos obligatorios (Título, Fecha, Ubicación, Distancia)");
       return;
     }
 
@@ -354,29 +359,26 @@ export default function AdminEventosPage() {
         date: new Date(formData.date).toISOString(),
       };
 
-      if (editingEvent) {
-        const res = await fetch(`/api/admin/events/${editingEvent.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (res.ok) {
-          setDialogOpen(false);
-          fetchEvents();
-        }
+      const url = editingEvent
+        ? `/api/admin/events/${editingEvent.id}`
+        : "/api/events";
+      const method = editingEvent ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        setDialogOpen(false);
+        fetchEvents();
       } else {
-        const res = await fetch("/api/events", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (res.ok) {
-          setDialogOpen(false);
-          fetchEvents();
-        }
+        const data = await res.json().catch(() => ({}));
+        setFormError(data.error || `Error al ${editingEvent ? "actualizar" : "crear"} el evento (${res.status})`);
       }
-    } catch {
-      // Silently handle
+    } catch (err) {
+      setFormError("Error de conexión. Verifica tu internet e intenta de nuevo.");
     } finally {
       setSaving(false);
     }
@@ -919,6 +921,12 @@ export default function AdminEventosPage() {
               </div>
             </div>
           </div>
+
+          {formError && (
+            <div className="sm:col-span-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">
+              {formError}
+            </div>
+          )}
 
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
