@@ -86,6 +86,7 @@ export async function POST(
         lastName,
         email,
         phone,
+        idNumber: idNumber || "",
         gender,
         dateOfBirth,
         category,

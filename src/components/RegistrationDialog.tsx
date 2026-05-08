@@ -38,6 +38,8 @@ import {
   Building2,
   Copy,
   FileText,
+  Sparkles,
+  Search,
 } from "lucide-react";
 import { LiabilityWaiver } from "./LiabilityWaiver";
 import type { EventCardProps } from "./EventCard";
@@ -153,6 +155,8 @@ export function RegistrationDialog({
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
   const [paymentRef, setPaymentRef] = useState("");
   const [waiverAccepted, setWaiverAccepted] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
+  const [autoFilled, setAutoFilled] = useState(false);
   const { toast } = useToast();
 
   const personalForm = useForm<PersonalInfo>({
@@ -179,6 +183,37 @@ export function RegistrationDialog({
     defaultValues: { emergencyContact: "", emergencyPhone: "" },
   });
 
+  const handleIdNumberBlur = async () => {
+    const idNumber = personalForm.getValues("idNumber").trim();
+    if (!idNumber || idNumber.length < 5) return;
+
+    setLookingUp(true);
+    try {
+      const res = await fetch(`/api/registrations/lookup?id=${encodeURIComponent(idNumber.toUpperCase())}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.firstName) {
+          personalForm.setValue("firstName", data.firstName || "");
+          personalForm.setValue("lastName", data.lastName || "");
+          personalForm.setValue("email", data.email || "");
+          personalForm.setValue("phone", data.phone || "");
+          if (data.gender) personalForm.setValue("gender", data.gender);
+          if (data.dateOfBirth) personalForm.setValue("dateOfBirth", data.dateOfBirth);
+          if (data.shirtSize) personalForm.setValue("shirtSize", data.shirtSize);
+          setAutoFilled(true);
+          toast({
+            title: "Datos encontrados",
+            description: "Se completaron tus datos automáticamente.",
+          });
+        }
+      }
+    } catch {
+      // Silently handle lookup failure
+    } finally {
+      setLookingUp(false);
+    }
+  };
+
   const resetForms = () => {
     personalForm.reset();
     raceForm.reset();
@@ -187,6 +222,8 @@ export function RegistrationDialog({
     setSelectedPayment(null);
     setPaymentRef("");
     setWaiverAccepted(false);
+    setAutoFilled(false);
+    setLookingUp(false);
   };
 
   const handleClose = (val: boolean) => {
