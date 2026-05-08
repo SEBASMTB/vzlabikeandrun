@@ -85,6 +85,7 @@ interface Event {
   kitInfo: string;
   sponsors: string;
   categories: string;
+  ageCalcMode: string;
   _count?: { registrations: number };
 }
 
@@ -110,6 +111,7 @@ interface FormData {
   kitInfo: string;
   sponsors: string;
   categories: string;
+  ageCalcMode: string;
 }
 
 const emptyForm: FormData = {
@@ -134,6 +136,7 @@ const emptyForm: FormData = {
   kitInfo: "",
   sponsors: "",
   categories: "",
+  ageCalcMode: "calendar_year",
 };
 
 // ============================================================
@@ -259,6 +262,7 @@ export default function AdminEventosPage() {
       kitInfo: event.kitInfo || "",
       sponsors: event.sponsors || "",
       categories: event.categories || "",
+      ageCalcMode: event.ageCalcMode || "calendar_year",
     });
     setFormError("");
     setDialogOpen(true);
@@ -876,6 +880,51 @@ export default function AdminEventosPage() {
                 {selectedCats.length} categoría(s) seleccionada(s)
               </div>
             )}
+
+            {/* ---- AGE CALCULATION MODE ---- */}
+            <SectionTitle>Cálculo de Edad</SectionTitle>
+            <div className="sm:col-span-2">
+              <div className="flex items-start gap-3 border rounded-lg p-3">
+                <div className="flex-1">
+                  <Label className="text-sm font-medium">Modo de cálculo de edad para categorías</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Define cómo se calcula la edad del participante para asignar la categoría correspondiente.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setFormData((p) => ({ ...p, ageCalcMode: "calendar_year" }))}
+                      className={cn(
+                        "text-left p-3 rounded-lg border-2 transition-all",
+                        formData.ageCalcMode === "calendar_year"
+                          ? "border-red-400 bg-red-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      )}
+                    >
+                      <p className="text-sm font-semibold">Año Calendario</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Edad = Año del evento - Año de nacimiento. No importa si ya cumplió años en el año del evento.
+                      </p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData((p) => ({ ...p, ageCalcMode: "event_day" }))}
+                      className={cn(
+                        "text-left p-3 rounded-lg border-2 transition-all",
+                        formData.ageCalcMode === "event_day"
+                          ? "border-red-400 bg-red-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      )}
+                    >
+                      <p className="text-sm font-semibold">Edad Exacta al Día del Evento</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Edad = Fecha del evento - Fecha de nacimiento. Se usa la edad exacta cumplida.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* ---- ADDITIONAL INFO ---- */}
             <SectionTitle>Información Adicional</SectionTitle>

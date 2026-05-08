@@ -30,6 +30,7 @@ model Event {
   kitInfo         String          @default("")
   sponsors        String          @default("")
   categories      String          @default("")
+  ageCalcMode     String          @default("calendar_year")
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   registrations   Registration[]

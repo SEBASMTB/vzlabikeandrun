@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,6 +42,7 @@ import {
   Search,
 } from "lucide-react";
 import { LiabilityWaiver } from "./LiabilityWaiver";
+import { calculateAge, assignCategory } from "@/lib/categories";
 import type { EventCardProps } from "./EventCard";
 
 const personalInfoSchema = z.object({
@@ -157,6 +158,8 @@ export function RegistrationDialog({
   const [waiverAccepted, setWaiverAccepted] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
   const [autoFilled, setAutoFilled] = useState(false);
+  const [autoCategory, setAutoCategory] = useState<string>("");
+  const [autoAge, setAutoAge] = useState<number | null>(null);
   const { toast } = useToast();
 
   const personalForm = useForm<PersonalInfo>({
@@ -182,6 +185,37 @@ export function RegistrationDialog({
     resolver: zodResolver(emergencySchema),
     defaultValues: { emergencyContact: "", emergencyPhone: "" },
   });
+
+  // Auto-calculate category when DOB, gender, or event changes
+  useEffect(() => {
+    const dob = personalForm.getValues("dateOfBirth");
+    const gender = personalForm.getValues("gender");
+    if (dob && gender && event?.date) {
+      const mode = event?.ageCalcMode || "calendar_year";
+      const age = calculateAge(dob, event.date, mode);
+      setAutoAge(age);
+      const sportType = event?.sportType || "running";
+      const assigned = assignCategory(age, sportType, gender);
+      if (assigned) {
+        const categoryValue = `${assigned.value} - ${assigned.label}`;
+        setAutoCategory(categoryValue);
+        raceForm.setValue("category", categoryValue);
+      } else {
+        setAutoCategory("");
+        raceForm.setValue("category", "");
+      }
+    } else {
+      setAutoAge(null);
+      setAutoCategory("");
+      raceForm.setValue("category", "");
+    }
+  }, [
+    personalForm.watch("dateOfBirth"),
+    personalForm.watch("gender"),
+    event?.date,
+    event?.ageCalcMode,
+    event?.sportType,
+  ]);
 
   const handleIdNumberBlur = async () => {
     const idNumber = personalForm.getValues("idNumber").trim();
@@ -224,6 +258,8 @@ export function RegistrationDialog({
     setWaiverAccepted(false);
     setAutoFilled(false);
     setLookingUp(false);
+    setAutoCategory("");
+    setAutoAge(null);
   };
 
   const handleClose = (val: boolean) => {
@@ -549,7 +585,7 @@ export function RegistrationDialog({
                       {event?.title}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {event?.distance} • {event?.location}
+                      {event?.distance} - {event?.location}
                     </p>
                   </div>
                   <Badge className="gradient-primary text-white border-0">
@@ -558,26 +594,47 @@ export function RegistrationDialog({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="category">Categoría *</Label>
-                <Select
-                  value={raceForm.watch("category")}
-                  onValueChange={(val) =>
-                    raceForm.setValue("category", val, { shouldValidate: true })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Seleccionar categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">General</SelectItem>
-                    <SelectItem value="elite">Élite</SelectItem>
-                    <SelectItem value="master-a">Master A (30-39)</SelectItem>
-                    <SelectItem value="master-b">Master B (40-49)</SelectItem>
-                    <SelectItem value="master-c">Master C (50+)</SelectItem>
-                    <SelectItem value="juvenil">Juvenil</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Age and Category Auto-Assigned */}
+              <div className="space-y-3">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-sm mb-3 text-red-800">
+                    Tu Categoría (calculada automáticamente)
+                  </h4>
+                  
+                  {autoAge !== null && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-sm text-red-700">Edad calculada:</span>
+                      <Badge variant="secondary" className="font-bold">
+                        {autoAge} años
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        ({event?.ageCalcMode === "event_day" ? "Edad exacta al día del evento" : "Año calendario"})
+                      </span>
+                    </div>
+                  )}
+
+                  {autoCategory ? (
+                    <div className="bg-white rounded-md p-3 border border-red-100">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-green-500" />
+                        <span className="font-bold text-foreground">
+                          {autoCategory.includes(" - ") ? autoCategory.split(" - ").pop() : autoCategory}
+                        </span>
+                      </div>
+                      <input type="hidden" {...raceForm.register("category")} />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Código: {autoCategory.includes(" - ") ? autoCategory.split(" - ")[0] : autoCategory}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 rounded-md p-3 border border-amber-200">
+                      <p className="text-xs text-amber-700">
+                        No se pudo asignar una categoría. Verifica que la fecha de nacimiento y el género sean correctos en el paso anterior.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {raceForm.formState.errors.category && (
                   <p className="text-sm text-destructive">
                     {raceForm.formState.errors.category.message}

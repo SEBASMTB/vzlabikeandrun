@@ -20,6 +20,7 @@ export interface EventCardProps {
   featured?: boolean;
   sportType?: string;
   bannerImage?: string;
+  ageCalcMode?: string;
   onRegister?: (event: EventCardProps) => void;
 }
 
@@ -59,6 +60,7 @@ export function EventCard({
   featured,
   sportType,
   bannerImage,
+  ageCalcMode,
   onRegister,
 }: EventCardProps) {
   const gradientClass = categoryGradients[category] || "from-red-500 to-red-500";
@@ -138,7 +140,7 @@ export function EventCard({
           <Button
             size="lg"
             className="gradient-primary text-white border-0 hover:opacity-90"
-            onClick={() => onRegister?.({ id, slug, title, description: description || "", date, location, distance, category, imageUrl, price, featured, sportType, bannerImage })}
+            onClick={() => onRegister?.({ id, slug, title, description: description || "", date, location, distance, category, imageUrl, price, featured, sportType, bannerImage, ageCalcMode })}
           >
             Inscribirse
             <ArrowRight className="size-4" />

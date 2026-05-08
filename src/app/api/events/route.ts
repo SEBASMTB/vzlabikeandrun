@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
       sportType, imageUrl, bannerImage, price, priceBs,
       maxParticipants, featured, status,
       organizer, prizes, rules, kitInfo, sponsors, categories,
+      ageCalcMode,
     } = body;
 
     if (!title || !slug || !date || !location || !distance || !category) {
@@ -58,6 +59,7 @@ export async function POST(request: NextRequest) {
         kitInfo: kitInfo || "",
         sponsors: sponsors || "",
         categories: categories || "",
+        ageCalcMode: ageCalcMode || "calendar_year",
       },
     });
 

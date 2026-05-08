@@ -253,7 +253,7 @@ export function GroupRegistrationDialog({
             const age = calculateAge(
               data.dateOfBirth,
               event?.date || "",
-              "calendar_year"
+              event?.ageCalcMode || "calendar_year"
             );
             const sportType = event?.sportType || "running";
             const assigned = assignCategory(age, sportType, data.gender);
@@ -292,7 +292,7 @@ export function GroupRegistrationDialog({
         );
       }
     },
-    [participants, event?.date, event?.category]
+    [participants, event?.date, event?.ageCalcMode, event?.sportType]
   );
 
   // ─── Update participant field ──────────────────────────────────────────
@@ -307,7 +307,7 @@ export function GroupRegistrationDialog({
           // Recalculate category when DOB or gender changes
           if (field === "dateOfBirth" || field === "gender") {
             if (updated.dateOfBirth && updated.gender) {
-              const age = calculateAge(updated.dateOfBirth, event?.date || "", "calendar_year");
+              const age = calculateAge(updated.dateOfBirth, event?.date || "", event?.ageCalcMode || "calendar_year");
               const sportType = event?.sportType || "running";
               const assigned = assignCategory(age, sportType, updated.gender);
               updated.category = assigned ? `${assigned.value} - ${assigned.label}` : "";
@@ -320,7 +320,7 @@ export function GroupRegistrationDialog({
         })
       );
     },
-    [event?.date, event?.category]
+    [event?.date, event?.ageCalcMode, event?.sportType]
   );
 
   // ─── Add / Remove participant ──────────────────────────────────────────

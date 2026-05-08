@@ -75,6 +75,7 @@ export async function PUT(
         kitInfo: body.kitInfo,
         sponsors: body.sponsors,
         categories: body.categories,
+        ageCalcMode: body.ageCalcMode,
       },
     });
 
