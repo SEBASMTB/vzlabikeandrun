@@ -133,9 +133,8 @@ export function EventsSection() {
           className="text-center mt-12"
         >
           <Button
-            variant="outline"
             size="lg"
-            className="border-red-300 text-red-600 hover:bg-red-50"
+            className="gradient-primary text-white border-0"
           >
             <CalendarDays className="size-4 mr-2" />
             Ver Todos los Eventos

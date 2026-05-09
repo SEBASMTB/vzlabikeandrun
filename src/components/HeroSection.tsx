@@ -153,7 +153,7 @@ export function HeroSection() {
             <Button
               size="lg"
               variant="outline"
-              className="border-white/30 text-white hover:bg-white/10 text-base px-8 h-12 bg-transparent"
+              className="border-red-400/50 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 text-base px-8 h-12 bg-transparent transition-colors"
               onClick={() => handleScroll("#contacto")}
             >
               Solicitar Presupuesto
