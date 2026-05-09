@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { MapPin, Calendar, Ruler, Users, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -21,11 +22,14 @@ export interface EventCardProps {
   sportType?: string;
   bannerImage?: string;
   ageCalcMode?: string;
+  categories?: string;
+  hasShirt?: boolean;
   onRegister?: (event: EventCardProps) => void;
 }
 
 const categoryColors: Record<string, string> = {
   Carrera: "bg-red-100 text-red-700 border-red-200",
+  Triatlon: "bg-emerald-100 text-emerald-700 border-emerald-200",
   Triatlón: "bg-emerald-100 text-emerald-700 border-emerald-200",
   Virtual: "bg-violet-100 text-violet-700 border-violet-200",
   MTB: "bg-amber-100 text-amber-700 border-amber-200",
@@ -33,6 +37,7 @@ const categoryColors: Record<string, string> = {
 
 const categoryGradients: Record<string, string> = {
   Carrera: "from-red-500 to-red-500",
+  Triatlon: "from-emerald-500 to-teal-500",
   Triatlón: "from-emerald-500 to-teal-500",
   Virtual: "from-violet-500 to-purple-500",
   MTB: "from-amber-500 to-yellow-500",
@@ -61,22 +66,45 @@ export function EventCard({
   sportType,
   bannerImage,
   ageCalcMode,
+  categories,
+  hasShirt,
   onRegister,
 }: EventCardProps) {
+  const router = useRouter();
   const gradientClass = categoryGradients[category] || "from-red-500 to-red-500";
   const colorClass = categoryColors[category] || "bg-red-100 text-red-700";
+
+  const eventData: EventCardProps = {
+    id,
+    slug,
+    title,
+    description: description || "",
+    date,
+    location,
+    distance,
+    category,
+    imageUrl,
+    price,
+    featured,
+    sportType,
+    bannerImage,
+    ageCalcMode,
+    categories,
+    hasShirt,
+  };
 
   return (
     <motion.div
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
-      className="group bg-card rounded-2xl overflow-hidden border shadow-sm hover:shadow-xl transition-all duration-300"
+      className="group bg-card rounded-2xl overflow-hidden border shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
+      onClick={() => router.push(`/eventos/${slug}`)}
     >
       {/* Image Header */}
       <div className="relative h-48 overflow-hidden">
-        {imageUrl ? (
+        {bannerImage || imageUrl ? (
           <img
-            src={imageUrl}
+            src={bannerImage || imageUrl}
             alt={title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
@@ -140,9 +168,8 @@ export function EventCard({
           <Button
             size="lg"
             className="gradient-primary text-white border-0 hover:opacity-90"
-            onClick={() => onRegister?.({ id, slug, title, description: description || "", date, location, distance, category, imageUrl, price, featured, sportType, bannerImage, ageCalcMode })}
           >
-            Inscribirse
+            Ver Detalles
             <ArrowRight className="size-4" />
           </Button>
         </div>

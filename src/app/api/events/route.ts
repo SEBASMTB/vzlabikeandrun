@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 
 export async function GET() {
   try {
@@ -20,13 +21,16 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const authError = requireAuth(request);
+    if (authError) return authError;
+
     const body = await request.json();
     const {
       title, slug, description, date, location, distance, category,
       sportType, imageUrl, bannerImage, price, priceBs,
       maxParticipants, featured, status,
       organizer, prizes, rules, kitInfo, sponsors, categories,
-      ageCalcMode,
+      ageCalcMode, hasShirt,
     } = body;
 
     if (!title || !slug || !date || !location || !distance || !category) {
@@ -60,6 +64,7 @@ export async function POST(request: NextRequest) {
         sponsors: sponsors || "",
         categories: categories || "",
         ageCalcMode: ageCalcMode || "calendar_year",
+        hasShirt: hasShirt !== false,
       },
     });
 

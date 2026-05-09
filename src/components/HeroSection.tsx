@@ -89,21 +89,19 @@ export function HeroSection() {
           transition={{ duration: 0.8 }}
           className="max-w-3xl"
         >
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-sm text-white/90">
-              Tecnología de punta para tus eventos
-            </span>
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-4">
             <span className="text-gradient">25 Años</span> de Experiencia
           </h1>
 
-          <p className="text-lg md:text-xl text-white/80 max-w-2xl mb-8">
-            Cronometraje deportivo profesional y organización de eventos.
-            Carreras, Triatlones, MTB y más. Tecnología de punta y resultados
-            en tiempo real.
+          <p className="text-xl sm:text-2xl md:text-3xl font-semibold text-white/90 max-w-3xl mb-4 leading-snug">
+            Soluciones Integrales en Ingeniería de Eventos y Cronometraje Deportivo
+          </p>
+
+          <p className="text-base md:text-lg text-white/70 max-w-2xl mb-8 leading-relaxed">
+            En Venezuela Bike & Run, no solo medimos el tiempo; diseñamos experiencias
+            competitivas de clase mundial. Ofrecemos una gestión integral de 360°,
+            acompañando a organizadores y marcas desde la concepción de la idea hasta
+            la publicación del último resultado.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4">

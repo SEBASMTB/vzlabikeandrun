@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { sendPreRegistrationEmail } from "@/lib/email";
+import { calculateAge, parseEventCategories, validateMTBCategory } from "@/lib/categories";
 
 export async function POST(
   request: NextRequest,
@@ -24,6 +26,7 @@ export async function POST(
       paymentMethod,
       paymentRef,
       waiverAccepted,
+      mtbProfile,
     } = body;
 
     if (!firstName || !lastName || !email || !phone || !idNumber || !gender || !dateOfBirth || !category) {
@@ -76,6 +79,25 @@ export async function POST(
       );
     }
 
+    // MTB category/profile validation
+    if (event.sportType === "mtb" && mtbProfile) {
+      const age = calculateAge(dateOfBirth, event.date.toISOString(), event.ageCalcMode || "calendar_year");
+      const eventCats = parseEventCategories(event.categories, "mtb");
+      const validation = validateMTBCategory(
+        category,
+        age,
+        eventCats,
+        gender,
+        mtbProfile
+      );
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: validation.error || "Categoría no válida para el perfil seleccionado" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Generate bib number
     const bibNumber = regCount + 1;
 
@@ -89,6 +111,7 @@ export async function POST(
         idNumber: idNumber || "",
         gender,
         dateOfBirth,
+        shirtSize: shirtSize || "",
         category,
         team: team || "",
         emergencyContact: emergencyContact || "",
@@ -100,6 +123,19 @@ export async function POST(
         bibNumber,
       },
     });
+
+    // Send confirmation email (non-blocking)
+    sendPreRegistrationEmail({
+      firstName: registration.firstName,
+      lastName: registration.lastName,
+      email: registration.email,
+      eventTitle: event.title,
+      eventDate: event.date.toISOString(),
+      eventLocation: event.location,
+      eventDistance: event.distance,
+      category: registration.category,
+      paymentMethod: registration.paymentMethod,
+    }).catch(() => {});
 
     return NextResponse.json(registration, { status: 201 });
   } catch {

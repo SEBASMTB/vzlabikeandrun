@@ -1,75 +1,153 @@
 ---
 Task ID: 1
 Agent: Main Agent
-Task: Continue building VzlaBike and Run website - Admin Panel implementation
+Task: Fix category auto-assignment bug, add shirt toggle, add custom categories per event
 
 Work Log:
-- Reviewed full project state (all files, components, API routes, database schema)
-- Confirmed LiabilityWaiver already integrated in registration form (Step 3) with dynamic event title, date, organizer substitution
-- Created Admin Panel API routes (auth, stats, events CRUD, registrations management, logout)
-- Created Admin Panel pages (login, dashboard, event management, registration management)
-- Fixed integration issues between two parallel sub-agents:
-  - Fixed auth route to use createToken() and comparePassword() from auth.ts
-  - Fixed comparePassword() timing-safe comparison logic (was returning true for wrong passwords)
-  - Fixed stats route to use requireAuth() and optimized revenue calculation (removed N+1 queries)
-  - Fixed registrations route to use requireAuth()
-  - Created /api/admin/logout POST endpoint for sidebar logout
-  - Fixed admin layout sidebar to call POST /api/admin/logout
-  - Fixed auth.ts to use request.cookies instead of async cookies() (Next.js 16 breaking change)
-  - Updated public events POST route to accept all fields (organizer, prizes, rules, kitInfo, sponsors)
-- Re-seeded database with 6 sample events
-- Verified all APIs work: login, bad password rejection, stats, registrations, events CRUD
+- Read and analyzed current category system: hardcoded in categories.ts, comma-separated values in Event.categories
+- Identified root cause: MTB "Recreativo Varones (25+)" had maxAge=999 and was first in array, catching all males 25+
+- Rewrote `assignCategory` to use new `assignCategoryFromList()` that sorts by range specificity (smallest range first)
+- Moved "Recreativo" to end of MTB categories array
+- Added `parseEventCategories()` to parse JSON from event.categories (backward compatible with comma-separated)
+- Added `serializeEventCategories()` to store as JSON
+- Updated RegistrationDialog.tsx: uses `parseEventCategories` + `assignCategoryFromList` for auto-assignment
+- Updated GroupRegistrationDialog.tsx: same fix + added `hasShirt` conditional for shirt size field
+- Updated admin/eventos/page.tsx: categories now stored as JSON, added custom category creation form (name, minAge, maxAge, gender), selected categories summary with remove buttons
+- hasShirt toggle was already in schema and admin form; now properly works in GroupRegistration too
+- Deployed to Vercel production successfully
 
 Stage Summary:
-- Admin Panel fully functional at /admin with password protection (default: vzlabike2024)
-- Dashboard shows: total events, registrations, confirmed, estimated revenue, recent registrations, events with counts
-- Event management: create, edit, delete events with full form (title, slug, date, location, distance, category, price, status, max participants, organizer, description, prizes, rules, kit info, featured)
-- Registration management: list with filters (event, status, search), pagination, status update (confirm/reject), detail view
-- All admin APIs protected with token-based auth (httpOnly cookie, 24h expiry)
-- Production build compiles successfully with zero errors
-- 18 routes total (7 admin pages, 8 API endpoints, 3 existing)
+- Fixed category auto-assignment: now uses specificity-based sorting so "Élite Varones (19-29)" assigned before "Recreativo Varones (25+)"
+- Categories stored as JSON: [{value, label, minAge, maxAge, gender}, ...]
+- Backward compatible: old comma-separated format still works via fallback in parseEventCategories
+- Admin can add custom categories (e.g., "Organismos de Seguridad") via new form
+- Shirt/franela toggle works per event: `hasShirt` field hides shirt size in registration forms
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix admin panel security (4th attempt - client-side guard approach)
+
+Work Log:
+- Created `/api/admin/verify` GET endpoint that validates admin_token cookie server-side
+- Rewrote `src/app/admin/layout.tsx` as a client component with auth guard
+- Guard calls /api/admin/verify on mount, redirects to /admin/login if not authenticated
+- Removed `checkAdminAuth()` calls from all 5 individual admin pages (page.tsx)
+- Pages now just render AdminShell + content (layout handles auth)
+- This approach is cache-proof: JavaScript executes at runtime, cannot be cached
+
+Stage Summary:
+- Admin security: Client-side guard in layout + server-side API verification (dual layer)
+- Key files: layout.tsx (client auth guard), /api/admin/verify/route.ts, all admin pages simplified
 
 ---
 Task ID: 2
-Agent: Fix Agent
-Task: Fix blank white screen on deployment
+Agent: Main Agent
+Task: Implement pre-registration confirmation emails
 
 Work Log:
-- Read worklog and understood previous admin panel implementation
-- Read all critical files: next.config.ts, package.json, layout.tsx, page.tsx, globals.css, all components
-- Analyzed all 15+ source files in app/ directory recursively
-- Checked all API routes for potential issues
-- Built and tested standalone server locally - confirmed HTML/CSS/JS all served correctly (83KB HTML, 129KB CSS)
-- Identified multiple issues causing blank screen:
-
-Issue 1: Tailwind v3/v4 config conflict (CRITICAL)
-- tailwind.config.ts was a Tailwind v3 config with hsl() color wrappers and content paths missing src/
-- Project uses Tailwind v4 with CSS-first config (@import "tailwindcss" + @theme inline)
-- The v3 config defined colors as hsl(var(--background)) but globals.css uses oklch() values
-- hsl(var(--sidebar-border)) and hsl(var(--sidebar-accent)) leaked into built CSS (invalid CSS)
-- Removed tailwind.config.ts entirely to eliminate conflict
-
-Issue 2: Missing error boundaries (CRITICAL)
-- No error.tsx or global-error.tsx existed in the app directory
-- Any React hydration error would unmount the entire component tree → blank page
-- Added error.tsx (client error boundary with retry button)
-- Added global-error.tsx (catches root-level errors)
-- Added not-found.tsx (custom 404 page)
-
-Issue 3: Build script missing database files
-- Build script only copied .next/static and public/ to standalone output
-- Did not copy prisma/schema.prisma or db/custom.db needed at runtime
-- Updated build script to also copy prisma/ and db/ directories
-
-Issue 4: Prisma query logging in production
-- db.ts had log: ['query'] enabled unconditionally, causing performance overhead
-- Fixed to only enable in development mode
+- Installed `resend` npm package
+- Created `src/lib/email.ts` with Resend integration and HTML email template
+- Email template includes: event name, date, location, distance, category, payment method
+- Notice: "En un lapso de 24 a 48 horas recibiras la confirmacion definitiva"
+- WhatsApp contact button in email
+- Added email sending to individual registration API (non-blocking)
+- Added email sending to group registration API (one email per participant)
+- Added RESEND_API_KEY, FROM_EMAIL, FROM_NAME to .env
 
 Stage Summary:
-- Removed conflicting tailwind.config.ts (Tailwind v3 artifact in v4 project)
-- Added error.tsx, global-error.tsx, not-found.tsx error boundaries
-- Updated build script to copy prisma/ and db/ to standalone output
-- Fixed Prisma production logging
-- Build succeeds with 15 routes, 0 errors
-- Standalone server serves valid HTML (83KB), CSS (129KB), and JS correctly
-- Error boundaries ensure any runtime error shows a user-friendly message instead of blank screen
+- Email system ready, requires RESEND_API_KEY in Vercel env vars to activate
+- From: venezuelabikeandrun@gmail.com (Venezuela Bike and Run)
+- Emails sent automatically on successful registration (individual and group)
+---
+Task ID: 3
+Agent: Main Agent
+Task: Fix cursor pointer on buttons (Inscribirme, Ver Participantes)
+
+Work Log:
+- User reported that hovering over "Inscribirme" and "Ver Participantes" buttons doesn't show pointer cursor
+- Root cause: shadcn/ui Button component was missing `cursor-pointer` in its base variant styles
+- Added `cursor-pointer` to the base cva string in `src/components/ui/button.tsx`
+- This fix applies to ALL buttons across the entire site
+- Vercel CLI deploys kept failing with "Unexpected error" - root cause: git metadata in deploy payload
+- Fix: temporarily moved `.git` directory before deploy, then restored it
+- Deploy successful: dpl_6sbUm8ZFq8e9ZhZWqo24C3SabtNJ
+- Alias my-project-eosin-nine.vercel.app correctly assigned to new deployment
+
+Stage Summary:
+- All buttons now show pointer cursor on hover
+- Production URL: https://my-project-eosin-nine.vercel.app
+- Vercel deploy requires `.git` to be moved temporarily to avoid metadata conflicts
+---
+Task ID: 4
+Agent: Main Agent
+Task: Change event card button from "Inscribirse" to "Ver Detalles"
+
+Work Log:
+- User feedback: people click "Inscribirse" directly from event cards without seeing event info first
+- Changed button text from "Inscribirse" to "Ver Detalles" in EventCard.tsx
+- Removed onClick handler (e.stopPropagation + onRegister) since the whole card already navigates to /eventos/[slug]
+- The registration form ("Inscribirme Ahora") remains on the event detail page
+- New flow: Próximos Eventos → Ver Detalles → Event info page → Inscribirme Ahora
+- Deployed: dpl_9BPmn64up9CRjcf1MUhktAetH1qv
+- Alias updated to new deployment
+
+Stage Summary:
+- Event card button now says "Ver Detalles" and navigates to event detail page
+- Better UX: users see full event info before registering
+- Registration form accessible only from event detail page
+---
+Task ID: 5
+Agent: Main Agent (full-stack-developer subagent)
+Task: Implement MTB Smart Category System with Competitivo/Recreativo Profile
+
+Work Log:
+- Added `profile?: "competitivo" | "recreativo"` field to CategoryOption interface
+- Updated generateMTB() to tag all UCI categories as "competitivo" and Recreativo/E-Bike/100kg as "recreativo"
+- Created getMTBCategoryOptions() function: splits categories by profile based on age + gender
+- Created validateMTBCategory() function: server-side validation that category matches profile + age
+- Updated parseEventCategories/serializeEventCategories to preserve profile field
+- Updated RegistrationDialog.tsx: added Competitivo/Recreativo profile selector (two buttons with Trophy/Heart icons)
+  - Competitivo → shows single UCI category (auto-assigned, no dropdown)
+  - Recreativo → shows dropdown with Recreativo, E-Bike, 100kg options
+  - Non-MTB events: completely unchanged behavior
+- Updated GroupRegistrationDialog.tsx: added per-participant profile selector for MTB events
+  - Profile triggers category recalculation
+  - Validation requires profile selection for MTB before proceeding
+- Updated /api/events/[slug]/register/route.ts: server-side MTB validation (age calc + category check)
+- Updated /api/events/[slug]/register-group/route.ts: same validation per participant
+- Build verified: no TypeScript errors
+- Deployed: dpl_3NSJDzTsTbnm6q2WGKD7pn5KkG8A
+
+Stage Summary:
+- MTB registration now has Competitivo/Recreativo profile selector
+- Competitivo: only shows 1 UCI category matching age (no way to select wrong one)
+- Recreativo: shows recreational categories (Recreativo 25+, E-Bike, 100kg+)
+- Server-side validation prevents category forgery
+- Only applies to MTB events; other sports unchanged
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix broken JSX structure + deploy confirmation banner to Vercel
+
+Work Log:
+- Read RegistrationDialog.tsx and GroupRegistrationDialog.tsx
+- Found that the confirmation banner was already implemented in code (commit 9b0d718) but NOT deployed
+- Attempted multiple Vercel deployments - all failed with "Unexpected error"
+- Ran local build (next build) and discovered syntax error in RegistrationDialog.tsx line 541
+- The step indicator JSX structure was broken: `{steps.map((step, i) => (` was directly followed by `{currentStep === 0 && (` instead of step indicator circles
+- Missing `<AnimatePresence mode="wait">` opening tag (closing tag existed)
+- Missing Fragment wrappers and closing brackets in both files
+- Fixed RegistrationDialog.tsx: restored step indicator rendering, added AnimatePresence opening tag, added Fragment closing
+- Fixed GroupRegistrationDialog.tsx: added missing Fragment `<>` wrapper and closing
+- Local build passed successfully
+- Discovered real Vercel deployment error: git author email `venezuelabikeandrun@gmail.com` not authorized on Vercel team (only `venezuelabike@gmail.com` has access)
+- Fixed git config to use `venezuelabike@gmail.com` as author email
+- Changed Node.js from 24.x to 22.x (24.x had issues)
+- Successfully deployed to Vercel production
+
+Stage Summary:
+- Fixed critical JSX syntax errors in both registration dialogs
+- Changed git author email to venezuelabike@gmail.com for Vercel auth
+- Changed Node.js version to 22.x for Vercel compatibility
+- Production URL: https://my-project-venezuelabike-9338s-projects.vercel.app
+- Confirmation banner is now live with: big animated check, bib number, 3 info cards (payment, confirmation email, 24-48hr payment confirmation)

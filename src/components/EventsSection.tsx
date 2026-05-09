@@ -53,10 +53,6 @@ export function EventsSection() {
     setRegistrationType(type);
   };
 
-  const handleBackToTypeSelection = () => {
-    setRegistrationType(null);
-  };
-
   const handleIndividualClose = (open: boolean) => {
     if (!open) {
       setRegistrationType(null);
@@ -75,8 +71,8 @@ export function EventsSection() {
     <section id="eventos" className="py-20 md:py-28 bg-gray-50/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeading
-          title="Próximos Eventos"
-          subtitle="No te pierdas los eventos deportivos más emocionantes de Venezuela. Inscríbete ahora y vive la experiencia."
+          title="Proximos Eventos"
+          subtitle="No te pierdas los eventos deportivos mas emocionantes de Venezuela. Inscríbete ahora y vive la experiencia."
         />
 
         {/* Featured events strip */}
@@ -157,7 +153,7 @@ export function EventsSection() {
       }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Tipo de Inscripción</DialogTitle>
+            <DialogTitle>Tipo de Inscripcion</DialogTitle>
             <DialogDescription>
               {selectedEvent?.title} — {selectedEvent?.distance}
             </DialogDescription>
@@ -172,7 +168,7 @@ export function EventsSection() {
               className="space-y-4 py-4"
             >
               <p className="text-sm text-muted-foreground text-center mb-6">
-                ¿Cómo deseas inscribirte?
+                Como deseas inscribirte?
               </p>
 
               <div className="grid grid-cols-2 gap-4">
@@ -188,7 +184,7 @@ export function EventsSection() {
                   <div className="text-center">
                     <p className="font-bold text-foreground">Individual</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Inscripción para 1 persona
+                      Inscripcion para 1 persona
                     </p>
                   </div>
                 </button>

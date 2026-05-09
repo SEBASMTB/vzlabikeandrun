@@ -31,9 +31,12 @@ model Event {
   sponsors        String          @default("")
   categories      String          @default("")
   ageCalcMode     String          @default("calendar_year")
+  categoryInterval String          @default("10")
+  hasShirt        Boolean         @default(true)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   registrations   Registration[]
+  products        Product[]
 }
 
 model Registration {
@@ -58,4 +61,45 @@ model Registration {
   waiverAccepted   Boolean  @default(false)
   bibNumber        Int?
   createdAt        DateTime @default(now())
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  eventId     String?
+  event       Event?   @relation(fields: [eventId], references: [id])
+  name        String
+  description String   @default("")
+  price       Float    @default(0)
+  priceBs     Float    @default(0)
+  imageUrl    String   @default("")
+  images      String   @default("[]")
+  sizes       String   @default("[]")
+  color       String   @default("")
+  stock       Int      @default(0)
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orders      ProductOrder[]
+}
+
+model ProductOrder {
+  id            String   @id @default(cuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id])
+  firstName     String
+  lastName      String
+  email         String
+  phone         String
+  idNumber      String   @default("")
+  size          String   @default("")
+  color         String   @default("")
+  quantity      Int      @default(1)
+  totalPrice    Float    @default(0)
+  totalPriceBs  Float    @default(0)
+  paymentMethod String   @default("")
+  paymentRef    String   @default("")
+  status        String   @default("pending")
+  notes         String   @default("")
+  createdAt     DateTime @default(now())
 }

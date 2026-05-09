@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { sendPreRegistrationEmail } from "@/lib/email";
+import { calculateAge, parseEventCategories, validateMTBCategory } from "@/lib/categories";
 
 interface GroupParticipant {
   firstName: string;
@@ -9,6 +11,7 @@ interface GroupParticipant {
   dateOfBirth: string;
   shirtSize?: string;
   category: string;
+  mtbProfile?: string;
 }
 
 export async function POST(
@@ -122,6 +125,29 @@ export async function POST(
       );
     }
 
+    // MTB category/profile validation for each participant
+    if (event.sportType === "mtb") {
+      const eventCats = parseEventCategories(event.categories, "mtb");
+      for (const p of participants) {
+        if (p.mtbProfile) {
+          const age = calculateAge(p.dateOfBirth, event.date.toISOString(), event.ageCalcMode || "calendar_year");
+          const validation = validateMTBCategory(
+            p.category,
+            age,
+            eventCats,
+            p.gender,
+            p.mtbProfile as "competitivo" | "recreativo"
+          );
+          if (!validation.valid) {
+            return NextResponse.json(
+              { error: `${p.firstName} ${p.lastName}: ${validation.error || "Categoría no válida para el perfil seleccionado"}` },
+              { status: 400 }
+            );
+          }
+        }
+      }
+    }
+
     // Create all registrations in a transaction
     const createdRegistrations: Array<{
       id: string;
@@ -168,6 +194,21 @@ export async function POST(
         lastName: registration.lastName,
         category: registration.category,
       });
+    }
+
+    // Send confirmation email for each participant (non-blocking)
+    for (const p of participants) {
+      sendPreRegistrationEmail({
+        firstName: p.firstName,
+        lastName: p.lastName,
+        email: email,
+        eventTitle: event.title,
+        eventDate: event.date.toISOString(),
+        eventLocation: event.location,
+        eventDistance: event.distance,
+        category: p.category,
+        paymentMethod: paymentMethod || "",
+      }).catch(() => {});
     }
 
     return NextResponse.json(

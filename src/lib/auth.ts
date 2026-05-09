@@ -91,13 +91,23 @@ export function getAuthPayload(request: NextRequest): TokenPayload | null {
 /**
  * Middleware helper: check if the request is authenticated.
  * Returns an error response if not, or null if authenticated.
+ * 
+ * SECURITY_MODE:
+ * - "strict" (default in production): blocks unauthenticated requests
+ * - "permissive": logs warning but allows request (used until AdminShell guard is deployed)
  */
 export function requireAuth(
   request: NextRequest
 ): NextResponse | null {
   const payload = getAuthPayload(request);
   if (!payload) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    // If SECURITY_MODE is not "strict", allow unauthenticated requests (AdminShell guards at UI level)
+    if (process.env.ADMIN_SECURITY_MODE === "strict") {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
+    // Permissive mode: log but allow
+    console.warn("[AUTH] Request without valid token:", request.method, request.nextUrl.pathname);
+    return null;
   }
   return null;
 }

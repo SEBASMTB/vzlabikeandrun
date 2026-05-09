@@ -42,8 +42,8 @@ const contactInfo = [
   {
     icon: Phone,
     title: "Teléfono",
-    details: ["+58 412-123-4567", "+58 212-123-4567"],
-    action: "tel:+584121234567",
+    details: ["+58 412-016-2685"],
+    action: "tel:+584120162685",
   },
   {
     icon: Mail,
@@ -54,8 +54,8 @@ const contactInfo = [
   {
     icon: MessageCircle,
     title: "WhatsApp",
-    details: ["+58 412-123-4567"],
-    action: "https://wa.me/584121234567",
+    details: ["+58 412-016-2685"],
+    action: "https://wa.me/584120162685",
   },
   {
     icon: MapPin,
@@ -162,7 +162,7 @@ export function ContactSection() {
                   <Input
                     id="contact-phone"
                     type="tel"
-                    placeholder="+58 412-123-4567"
+                    placeholder="+58 412-016-2685"
                     {...register("phone")}
                   />
                   {errors.phone && (

@@ -76,6 +76,7 @@ export async function PUT(
         sponsors: body.sponsors,
         categories: body.categories,
         ageCalcMode: body.ageCalcMode,
+        hasShirt: body.hasShirt,
       },
     });
 

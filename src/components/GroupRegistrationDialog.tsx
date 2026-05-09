@@ -25,7 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { LiabilityWaiver } from "./LiabilityWaiver";
-import { calculateAge, assignCategory } from "@/lib/categories";
+import { calculateAge, parseEventCategories, assignCategoryFromList, getMTBCategoryOptions } from "@/lib/categories";
 import type { EventCardProps } from "./EventCard";
 import {
   Users,
@@ -47,6 +47,9 @@ import {
   Sparkles,
   User,
   Shield,
+  Trophy,
+  Heart,
+  Clock,
 } from "lucide-react";
 
 // ─── Types & Constants ───────────────────────────────────────────────────────
@@ -126,6 +129,7 @@ interface Participant {
   dateOfBirth: string;
   shirtSize: string;
   category: string;
+  profile: string; // "competitivo" or "recreativo" (empty until selected, for MTB)
   autoFilled: boolean;
   lookingUp: boolean;
 }
@@ -172,6 +176,7 @@ function createEmptyParticipant(): Participant {
     dateOfBirth: "",
     shirtSize: "",
     category: "",
+    profile: "",
     autoFilled: false,
     lookingUp: false,
   };
@@ -194,6 +199,11 @@ export function GroupRegistrationDialog({
     createEmptyParticipant(),
     createEmptyParticipant(),
   ]);
+  const [registrationSuccess, setRegistrationSuccess] = useState<{
+    count: number;
+    payLabel: string;
+    registrations: Array<{ bibNumber: number; firstName: string; lastName: string }>;
+  } | null>(null);
   const { toast } = useToast();
 
   const responsibleForm = useForm<ResponsibleInfo>({
@@ -215,6 +225,7 @@ export function GroupRegistrationDialog({
     responsibleForm.reset();
     emergencyForm.reset();
     setParticipants([createEmptyParticipant(), createEmptyParticipant()]);
+    setRegistrationSuccess(null);
   }, [responsibleForm, emergencyForm]);
 
   const handleClose = useCallback(
@@ -247,7 +258,7 @@ export function GroupRegistrationDialog({
         const data = await res.json();
 
         if (data.found) {
-          // Compute category from DOB + gender + event category
+          // Obtener categorías del evento y calcular categoría
           let category = "";
           if (data.dateOfBirth && data.gender) {
             const age = calculateAge(
@@ -256,7 +267,8 @@ export function GroupRegistrationDialog({
               event?.ageCalcMode || "calendar_year"
             );
             const sportType = event?.sportType || "running";
-            const assigned = assignCategory(age, sportType, data.gender);
+            const eventCats = parseEventCategories(event?.categories, sportType);
+            const assigned = assignCategoryFromList(age, eventCats, data.gender);
             category = assigned ? `${assigned.value} - ${assigned.label}` : "";
           }
 
@@ -292,7 +304,7 @@ export function GroupRegistrationDialog({
         );
       }
     },
-    [participants, event?.date, event?.ageCalcMode, event?.sportType]
+    [participants, event?.date, event?.ageCalcMode, event?.sportType, event?.categories]
   );
 
   // ─── Update participant field ──────────────────────────────────────────
@@ -304,13 +316,36 @@ export function GroupRegistrationDialog({
 
           const updated = { ...p, [field]: value };
 
-          // Recalculate category when DOB or gender changes
-          if (field === "dateOfBirth" || field === "gender") {
+          // Recalculate category when DOB, gender, or profile changes
+          if (field === "dateOfBirth" || field === "gender" || field === "profile") {
             if (updated.dateOfBirth && updated.gender) {
               const age = calculateAge(updated.dateOfBirth, event?.date || "", event?.ageCalcMode || "calendar_year");
               const sportType = event?.sportType || "running";
-              const assigned = assignCategory(age, sportType, updated.gender);
-              updated.category = assigned ? `${assigned.value} - ${assigned.label}` : "";
+              const eventCats = parseEventCategories(event?.categories, sportType);
+
+              if (sportType === "mtb" && updated.profile) {
+                const mtbOpts = getMTBCategoryOptions(age, eventCats, updated.gender);
+                if (updated.profile === "competitivo") {
+                  if (mtbOpts.competitivo.length > 0) {
+                    const cat = mtbOpts.competitivo[0];
+                    updated.category = `${cat.value} - ${cat.label}`;
+                  } else {
+                    updated.category = "";
+                  }
+                } else if (updated.profile === "recreativo") {
+                  if (mtbOpts.recreativo.length > 0) {
+                    const cat = mtbOpts.recreativo[0];
+                    updated.category = `${cat.value} - ${cat.label}`;
+                  } else {
+                    updated.category = "";
+                  }
+                } else {
+                  updated.category = "";
+                }
+              } else {
+                const assigned = assignCategoryFromList(age, eventCats, updated.gender);
+                updated.category = assigned ? `${assigned.value} - ${assigned.label}` : "";
+              }
             } else {
               updated.category = "";
             }
@@ -320,7 +355,7 @@ export function GroupRegistrationDialog({
         })
       );
     },
-    [event?.date, event?.ageCalcMode, event?.sportType]
+    [event?.date, event?.ageCalcMode, event?.sportType, event?.categories]
   );
 
   // ─── Add / Remove participant ──────────────────────────────────────────
@@ -395,6 +430,15 @@ export function GroupRegistrationDialog({
         return false;
       }
       if (!p.category) {
+        const isMTB = event?.sportType === "mtb";
+        if (isMTB && !p.profile) {
+          toast({
+            title: "Modalidad no seleccionada",
+            description: `${p.firstName} ${p.lastName} necesita seleccionar Competitivo o Recreativo.`,
+            variant: "destructive",
+          });
+          return false;
+        }
         toast({
           title: "Sin categoría",
           description: `No se pudo asignar categoría para ${p.firstName} ${p.lastName}. Verifica fecha de nacimiento y género.`,
@@ -468,6 +512,7 @@ export function GroupRegistrationDialog({
             dateOfBirth: p.dateOfBirth,
             shirtSize: p.shirtSize,
             category: p.category,
+            mtbProfile: event?.sportType === "mtb" ? p.profile : undefined,
           })),
           email: responsibleForm.getValues().email,
           phone: responsibleForm.getValues().phone,
@@ -483,19 +528,12 @@ export function GroupRegistrationDialog({
 
       if (res.ok) {
         const payLabel = paymentMethods.find((p) => p.id === selectedPayment)
-          ?.label;
-        const bibs = data.registrations
-          ?.map(
-            (r: { bibNumber: number; firstName: string; lastName: string }) =>
-              `${r.firstName} ${r.lastName} (#${r.bibNumber})`
-          )
-          .join(", ");
-
-        toast({
-          title: "¡Inscripción Grupal Recibida!",
-          description: `${data.count} participantes inscritos en ${event.title}. Dorsales: ${bibs}. Completa el pago con ${payLabel}.`,
+          ?.label || "pago";
+        setRegistrationSuccess({
+          count: data.count,
+          payLabel,
+          registrations: data.registrations || [],
         });
-        handleClose(false);
       } else {
         toast({
           title: "Error en la inscripción grupal",
@@ -552,6 +590,128 @@ export function GroupRegistrationDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Success Screen */}
+        {registrationSuccess && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-4 space-y-5"
+          >
+            {/* Big animated check icon */}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
+              className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-200"
+            >
+              <CheckCircle2 className="size-14 text-white" />
+            </motion.div>
+
+            {/* Title */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <h3 className="text-2xl font-extrabold text-foreground">
+                Pre-inscripcion Grupal en Proceso
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                {event?.title} - {registrationSuccess.count} participantes
+              </p>
+            </motion.div>
+
+            {/* Bib Numbers */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-4 space-y-2"
+            >
+              <p className="text-sm font-medium text-green-700">Dorsales asignados:</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {registrationSuccess.registrations.map(
+                  (r: { bibNumber: number; firstName: string; lastName: string }, i: number) => (
+                    <div key={i} className="bg-white border border-green-200 rounded-lg px-3 py-2">
+                      <span className="text-2xl font-black text-green-700">#{r.bibNumber}</span>
+                      <p className="text-[10px] text-green-600">{r.firstName} {r.lastName}</p>
+                    </div>
+                  )
+                )}
+              </div>
+            </motion.div>
+
+            {/* Info cards */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="space-y-3"
+            >
+              {/* Step 1: Payment */}
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 text-left">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-200 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-bold text-amber-800">1</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-amber-900">
+                      Confirma tu pago
+                    </p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      Completa el pago total con <strong>{registrationSuccess.payLabel}</strong> y envia tu comprobante por WhatsApp.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2: Confirmation email */}
+              <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-4 text-left">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center shrink-0">
+                    <Mail className="size-4 text-blue-800" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-blue-900">
+                      Recibiran un correo de confirmacion
+                    </p>
+                    <p className="text-xs text-blue-700 mt-1">
+                      Se enviara un correo electronico con los detalles de la pre-inscripcion grupal.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3: Payment confirmation email */}
+              <div className="bg-emerald-50 border-2 border-emerald-300 rounded-xl p-4 text-left">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-200 flex items-center justify-center shrink-0">
+                    <Clock className="size-4 text-emerald-800" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-emerald-900">
+                      Confirmacion de pago
+                    </p>
+                    <p className="text-xs text-emerald-700 mt-1">
+                      Una vez confirmado el pago, en un lapso de <strong>24 a 48 horas</strong> recibiran otro correo con la confirmacion definitiva de la inscripcion de todos los participantes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            <Button
+              size="lg"
+              className="gradient-primary text-white border-0 w-full text-base font-bold py-6 shadow-lg"
+              onClick={() => handleClose(false)}
+            >
+              Entendido
+            </Button>
+          </motion.div>
+        )}
+
+        {!registrationSuccess && (
+        <>
         {/* Step indicator */}
         <div className="flex items-center justify-between mb-6 px-2">
           {groupSteps.map((step, i) => {
@@ -648,7 +808,7 @@ export function GroupRegistrationDialog({
                   <Input
                     id="group-phone"
                     type="tel"
-                    placeholder="+58 412-123-4567"
+                    placeholder="+58 412-016-2685"
                     {...responsibleForm.register("phone")}
                   />
                   {responsibleForm.formState.errors.phone && (
@@ -841,7 +1001,8 @@ export function GroupRegistrationDialog({
                       </div>
                     </div>
 
-                    {/* Shirt Size */}
+                    {/* Shirt Size - only if event has shirt */}
+                    {event?.hasShirt !== false && (
                     <div className="space-y-1">
                       <Label className="text-xs">Talla de Camiseta</Label>
                       <Select
@@ -862,18 +1023,58 @@ export function GroupRegistrationDialog({
                         </SelectContent>
                       </Select>
                     </div>
+                    )}
 
-                    {/* Category (auto-assigned, read-only) */}
-                    {participant.category && (
+                    {/* MTB Profile Selector (only for MTB events) */}
+                    {event?.sportType === "mtb" && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">Modalidad *</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => updateParticipant(participant.id, "profile", "competitivo")}
+                            className={`p-2 rounded-lg border-2 text-center transition-all text-xs ${
+                              participant.profile === "competitivo"
+                                ? "border-red-500 bg-red-50 text-red-700"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <Trophy className="size-4 mx-auto mb-0.5" />
+                            <span className="font-bold">Competitivo</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateParticipant(participant.id, "profile", "recreativo")}
+                            className={`p-2 rounded-lg border-2 text-center transition-all text-xs ${
+                              participant.profile === "recreativo"
+                                ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <Heart className="size-4 mx-auto mb-0.5" />
+                            <span className="font-bold">Recreativo</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Category (auto-assigned, read-only or selectable for recreativo) */}
+                    {participant.category ? (
                       <div className="bg-muted/50 rounded-md p-2 flex items-center gap-2">
                         <Badge variant="secondary" className="text-xs">
                           {(participant.category || "").includes(" - ") ? participant.category.split(" - ").pop() : participant.category || "Sin categoría"}
                         </Badge>
                         <span className="text-[10px] text-muted-foreground">
-                          Categoría asignada automáticamente según edad y género
+                          {event?.sportType === "mtb" ? `Categoría ${participant.profile || ""}` : "Categoría asignada automáticamente según edad y género"}
                         </span>
                       </div>
-                    )}
+                    ) : event?.sportType === "mtb" && participant.dateOfBirth && participant.gender && !participant.profile ? (
+                      <div className="bg-amber-50 rounded-md p-2 border border-amber-200">
+                        <p className="text-[10px] text-amber-700">
+                          Selecciona modalidad para ver las categorías disponibles.
+                        </p>
+                      </div>
+                    ) : null}
                   </motion.div>
                 ))}
               </div>
@@ -919,7 +1120,7 @@ export function GroupRegistrationDialog({
                   <Input
                     id="group-emergency-phone"
                     type="tel"
-                    placeholder="+58 414-123-4567"
+                    placeholder="+58 414-016-2685"
                     {...emergencyForm.register("emergencyPhone")}
                   />
                   {emergencyForm.formState.errors.emergencyPhone && (
@@ -1119,6 +1320,8 @@ export function GroupRegistrationDialog({
             </Button>
           )}
         </div>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );

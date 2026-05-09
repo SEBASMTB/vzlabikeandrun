@@ -40,9 +40,13 @@ import {
   FileText,
   Sparkles,
   Search,
+  Trophy,
+  Heart,
+  Clock,
+  Mail,
 } from "lucide-react";
 import { LiabilityWaiver } from "./LiabilityWaiver";
-import { calculateAge, assignCategory } from "@/lib/categories";
+import { calculateAge, parseEventCategories, getEligibleCategories, getMTBCategoryOptions } from "@/lib/categories";
 import type { EventCardProps } from "./EventCard";
 
 const personalInfoSchema = z.object({
@@ -160,6 +164,9 @@ export function RegistrationDialog({
   const [autoFilled, setAutoFilled] = useState(false);
   const [autoCategory, setAutoCategory] = useState<string>("");
   const [autoAge, setAutoAge] = useState<number | null>(null);
+  const [eligibleCategories, setEligibleCategories] = useState<Array<{ value: string; label: string }>>([]);
+  const [mtbProfile, setMTBProfile] = useState<"competitivo" | "recreativo" | "">("");
+  const [registrationSuccess, setRegistrationSuccess] = useState<{bibNumber: number; payLabel: string} | null>(null);
   const { toast } = useToast();
 
   const personalForm = useForm<PersonalInfo>({
@@ -195,18 +202,57 @@ export function RegistrationDialog({
       const age = calculateAge(dob, event.date, mode);
       setAutoAge(age);
       const sportType = event?.sportType || "running";
-      const assigned = assignCategory(age, sportType, gender);
-      if (assigned) {
-        const categoryValue = `${assigned.value} - ${assigned.label}`;
-        setAutoCategory(categoryValue);
-        raceForm.setValue("category", categoryValue);
+      const eventCats = parseEventCategories(event?.categories, sportType);
+
+      // MTB: use profile-based category filtering
+      if (sportType === "mtb") {
+        const mtbOpts = getMTBCategoryOptions(age, eventCats, gender);
+        if (mtbProfile === "competitivo") {
+          if (mtbOpts.competitivo.length > 0) {
+            const cat = mtbOpts.competitivo[0];
+            const categoryValue = `${cat.value} - ${cat.label}`;
+            setAutoCategory(categoryValue);
+            setEligibleCategories(mtbOpts.competitivo.map(c => ({ value: `${c.value} - ${c.label}`, label: c.label })));
+            raceForm.setValue("category", categoryValue);
+          } else {
+            setAutoCategory("");
+            setEligibleCategories([]);
+            raceForm.setValue("category", "");
+          }
+        } else if (mtbProfile === "recreativo") {
+          const recreativoCats = mtbOpts.recreativo;
+          setEligibleCategories(recreativoCats.map(c => ({ value: `${c.value} - ${c.label}`, label: c.label })));
+          if (recreativoCats.length > 0) {
+            const categoryValue = `${recreativoCats[0].value} - ${recreativoCats[0].label}`;
+            setAutoCategory(categoryValue);
+            raceForm.setValue("category", categoryValue);
+          } else {
+            setAutoCategory("");
+            raceForm.setValue("category", "");
+          }
+        } else {
+          // No profile selected yet
+          setAutoCategory("");
+          setEligibleCategories([]);
+          raceForm.setValue("category", "");
+        }
       } else {
-        setAutoCategory("");
-        raceForm.setValue("category", "");
+        // Non-MTB: use the original logic
+        const { suggested, eligible } = getEligibleCategories(age, eventCats, gender);
+        setEligibleCategories(eligible.map(c => ({ value: `${c.value} - ${c.label}`, label: c.label })));
+        if (suggested) {
+          const categoryValue = `${suggested.value} - ${suggested.label}`;
+          setAutoCategory(categoryValue);
+          raceForm.setValue("category", categoryValue);
+        } else {
+          setAutoCategory("");
+          raceForm.setValue("category", "");
+        }
       }
     } else {
       setAutoAge(null);
       setAutoCategory("");
+      setEligibleCategories([]);
       raceForm.setValue("category", "");
     }
   }, [
@@ -215,6 +261,8 @@ export function RegistrationDialog({
     event?.date,
     event?.ageCalcMode,
     event?.sportType,
+    event?.categories,
+    mtbProfile,
   ]);
 
   const handleIdNumberBlur = async () => {
@@ -260,6 +308,8 @@ export function RegistrationDialog({
     setLookingUp(false);
     setAutoCategory("");
     setAutoAge(null);
+    setMTBProfile("");
+    setRegistrationSuccess(null);
   };
 
   const handleClose = (val: boolean) => {
@@ -273,6 +323,15 @@ export function RegistrationDialog({
         if (valid) setCurrentStep(1);
       });
     } else if (currentStep === 1) {
+      // For MTB, require profile selection
+      if (event?.sportType === "mtb" && !mtbProfile) {
+        toast({
+          title: "Selecciona tu modalidad",
+          description: "Debes elegir entre Competitivo o Recreativo para continuar.",
+          variant: "destructive",
+        });
+        return;
+      }
       raceForm.trigger().then((valid) => {
         if (valid) setCurrentStep(2);
       });
@@ -319,18 +378,15 @@ export function RegistrationDialog({
           paymentMethod: selectedPayment,
           paymentRef: paymentRef,
           waiverAccepted: true,
+          mtbProfile: event?.sportType === "mtb" ? mtbProfile : undefined,
         }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        const payLabel = paymentMethods.find((p) => p.id === selectedPayment)?.label;
-        toast({
-          title: "¡Inscripción Recibida!",
-          description: `Te has inscrito en ${event.title}. Tu dorsal es #${data.bibNumber}. Completa el pago con ${payLabel} y envía tu comprobante para confirmar.`,
-        });
-        handleClose(false);
+        const payLabel = paymentMethods.find((p) => p.id === selectedPayment)?.label || "pago";
+        setRegistrationSuccess({ bibNumber: data.bibNumber, payLabel });
       } else {
         toast({
           title: "Error en la inscripción",
@@ -361,6 +417,124 @@ export function RegistrationDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Success Screen */}
+        {registrationSuccess && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-4 space-y-5"
+          >
+            {/* Big animated check icon */}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
+              className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-200"
+            >
+              <CheckCircle2 className="size-14 text-white" />
+            </motion.div>
+
+            {/* Title */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <h3 className="text-2xl font-extrabold text-foreground">
+                Pre-inscripcion en Proceso
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                {event?.title}
+              </p>
+            </motion.div>
+
+            {/* Bib Number - Big and prominent */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-5"
+            >
+              <p className="text-sm font-medium text-green-700 mb-1">Tu dorsal es:</p>
+              <span className="text-5xl font-black text-green-700">
+                #{registrationSuccess.bibNumber}
+              </span>
+              <p className="text-xs text-green-600 mt-2">
+                Guarda este numero. Te lo pediran el dia del evento.
+              </p>
+            </motion.div>
+
+            {/* Info cards */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="space-y-3"
+            >
+              {/* Step 1: Payment */}
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 text-left">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-200 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-bold text-amber-800">1</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-amber-900">
+                      Confirma tu pago
+                    </p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      Completa el pago con <strong>{registrationSuccess.payLabel}</strong> y envia tu comprobante por WhatsApp.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2: Confirmation email */}
+              <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-4 text-left">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center shrink-0">
+                    <Mail className="size-4 text-blue-800" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-blue-900">
+                      Recibiras un correo de confirmacion
+                    </p>
+                    <p className="text-xs text-blue-700 mt-1">
+                      Te enviaremos un correo electronico con los detalles de tu pre-inscripcion.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3: Payment confirmation email */}
+              <div className="bg-emerald-50 border-2 border-emerald-300 rounded-xl p-4 text-left">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-200 flex items-center justify-center shrink-0">
+                    <Clock className="size-4 text-emerald-800" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-emerald-900">
+                      Confirmacion de pago
+                    </p>
+                    <p className="text-xs text-emerald-700 mt-1">
+                      Una vez confirmado tu pago, en un lapso de <strong>24 a 48 horas</strong> recibiras otro correo con la confirmacion definitiva de tu inscripcion.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            <Button
+              size="lg"
+              className="gradient-primary text-white border-0 w-full text-base font-bold py-6 shadow-lg"
+              onClick={() => handleClose(false)}
+            >
+              Entendido
+            </Button>
+          </motion.div>
+        )}
+
+        {!registrationSuccess && (
+        <>
         {/* Step indicator */}
         <div className="flex items-center justify-between mb-6 px-2">
           {steps.map((step, i) => (
@@ -402,7 +576,6 @@ export function RegistrationDialog({
         </div>
 
         <AnimatePresence mode="wait">
-          {/* Step 1: Personal Info */}
           {currentStep === 0 && (
             <motion.div
               key="step1"
@@ -495,7 +668,7 @@ export function RegistrationDialog({
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="+58 412-123-4567"
+                    placeholder="+58 412-016-2685"
                     {...personalForm.register("phone")}
                   />
                   {personalForm.formState.errors.phone && (
@@ -546,8 +719,10 @@ export function RegistrationDialog({
                 </div>
               </div>
 
+              {/* Shirt Size - only show if event has shirt */}
+              {event?.hasShirt !== false && (
               <div className="space-y-2">
-                <Label htmlFor="shirtSize">Talla de Camiseta (si aplica)</Label>
+                <Label htmlFor="shirtSize">Talla de Camiseta/Franela *</Label>
                 <Select
                   value={personalForm.watch("shirtSize")}
                   onValueChange={(val) =>
@@ -565,7 +740,9 @@ export function RegistrationDialog({
                     <SelectItem value="XXL">XXL</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">Este evento incluye franela/camiseta</p>
               </div>
+              )}
             </motion.div>
           )}
 
@@ -598,7 +775,7 @@ export function RegistrationDialog({
               <div className="space-y-3">
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <h4 className="font-semibold text-sm mb-3 text-red-800">
-                    Tu Categoría (calculada automáticamente)
+                    Tu Categoría
                   </h4>
                   
                   {autoAge !== null && (
@@ -613,18 +790,131 @@ export function RegistrationDialog({
                     </div>
                   )}
 
-                  {autoCategory ? (
-                    <div className="bg-white rounded-md p-3 border border-red-100">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-green-500" />
-                        <span className="font-bold text-foreground">
-                          {autoCategory.includes(" - ") ? autoCategory.split(" - ").pop() : autoCategory}
-                        </span>
+                  {/* MTB Profile Selector */}
+                  {event?.sportType === "mtb" && (
+                    <div className="space-y-2 mb-3">
+                      <Label className="text-sm font-semibold text-red-800">Modalidad</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setMTBProfile("competitivo")}
+                          className={`p-3 rounded-lg border-2 text-center transition-all ${
+                            mtbProfile === "competitivo"
+                              ? "border-red-500 bg-red-50 text-red-700"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <Trophy className="size-5 mx-auto mb-1" />
+                          <span className="text-sm font-bold">Competitivo</span>
+                          <p className="text-[10px] mt-1">Categoría UCI oficial</p>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMTBProfile("recreativo")}
+                          className={`p-3 rounded-lg border-2 text-center transition-all ${
+                            mtbProfile === "recreativo"
+                              ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <Heart className="size-5 mx-auto mb-1" />
+                          <span className="text-sm font-bold">Recreativo</span>
+                          <p className="text-[10px] mt-1">Diversión y participación</p>
+                        </button>
                       </div>
+                    </div>
+                  )}
+
+                  {/* MTB: profile selected */}
+                  {event?.sportType === "mtb" && mtbProfile && autoCategory && eligibleCategories.length > 0 ? (
+                    <div className="space-y-3">
+                      {mtbProfile === "competitivo" ? (
+                        <div className="bg-white rounded-md p-3 border border-green-200">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-3 h-3 rounded-full bg-green-500" />
+                            <span className="text-xs font-semibold text-green-700">Categoría asignada:</span>
+                            <span className="font-bold text-foreground">
+                              {autoCategory.includes(" - ") ? autoCategory.split(" - ").pop() : autoCategory}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            Categoría UCI oficial asignada según tu edad y género
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground block">
+                            Selecciona tu categoría recreativa:
+                          </Label>
+                          <Select
+                            value={raceForm.getValues("category")}
+                            onValueChange={(val) => {
+                              setAutoCategory(val);
+                              raceForm.setValue("category", val);
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Selecciona categoría" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {eligibleCategories.map((cat) => (
+                                <SelectItem key={cat.value} value={cat.value}>
+                                  {cat.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <input type="hidden" {...raceForm.register("category")} />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Código: {autoCategory.includes(" - ") ? autoCategory.split(" - ")[0] : autoCategory}
+                    </div>
+                  ) : event?.sportType === "mtb" && !mtbProfile ? (
+                    <div className="bg-amber-50 rounded-md p-3 border border-amber-200">
+                      <p className="text-xs text-amber-700">
+                        Selecciona tu modalidad (Competitivo o Recreativo) para ver las categorías disponibles.
                       </p>
+                    </div>
+                  ) : autoCategory && eligibleCategories.length > 0 ? (
+                    <div className="space-y-3">
+                      {/* Auto-assigned (sugerida) */}
+                      <div className="bg-white rounded-md p-3 border border-green-200">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-3 h-3 rounded-full bg-green-500" />
+                          <span className="text-xs font-semibold text-green-700">Sugerida:</span>
+                          <span className="font-bold text-foreground">
+                            {autoCategory.includes(" - ") ? autoCategory.split(" - ").pop() : autoCategory}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Selector de todas las categorías elegibles */}
+                      {eligibleCategories.length > 1 && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1 block">
+                            Puedes cambiar a otra categoría donde calificas:
+                          </Label>
+                          <Select
+                            value={raceForm.getValues("category")}
+                            onValueChange={(val) => {
+                              setAutoCategory(val);
+                              raceForm.setValue("category", val);
+                            }}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Selecciona categoría" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {eligibleCategories.map((cat) => (
+                                <SelectItem key={cat.value} value={cat.value}>
+                                  {cat.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      <input type="hidden" {...raceForm.register("category")} />
                     </div>
                   ) : (
                     <div className="bg-amber-50 rounded-md p-3 border border-amber-200">
@@ -692,7 +982,7 @@ export function RegistrationDialog({
                   <Input
                     id="emergencyPhone"
                     type="tel"
-                    placeholder="+58 414-123-4567"
+                    placeholder="+58 414-016-2685"
                     {...emergencyForm.register("emergencyPhone")}
                   />
                   {emergencyForm.formState.errors.emergencyPhone && (
@@ -872,6 +1162,8 @@ export function RegistrationDialog({
             </Button>
           )}
         </div>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );
