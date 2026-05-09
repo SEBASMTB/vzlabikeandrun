@@ -7,15 +7,13 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
-const RESULTS_URL = "https://vbr-results-portal.vercel.app";
-
 const navLinks = [
   { label: "Inicio", href: "/", anchor: "#inicio" },
   { label: "Nosotros", href: "/", anchor: "#nosotros" },
   { label: "Servicios", href: "/", anchor: "#servicios" },
   { label: "Eventos", href: "/", anchor: "#eventos" },
   { label: "Tienda", href: "/tienda" },
-  { label: "Resultados", href: RESULTS_URL, external: true, sameTab: true },
+  { label: "Resultados", href: "/resultados" },
   { label: "Contacto", href: "/", anchor: "#contacto" },
 ];
 
@@ -33,17 +31,10 @@ export function Header() {
    * - Anchor links on home page: smooth scroll
    * - Anchor links on other pages: navigate to "/" first, then scroll to section
    */
-  const handleNavClick = (href: string, anchor?: string, external?: boolean) => {
+  const handleNavClick = (href: string, anchor?: string) => {
     setMobileOpen(false);
 
-    // External link
-    if (external) {
-      // sameTab: navigate in current tab so browser back button works
-      window.location.href = href;
-      return;
-    }
-
-    // Direct page route (e.g., /tienda)
+    // Direct page route (e.g., /tienda, /resultados)
     if (!anchor) {
       router.push(href);
       return;
@@ -51,13 +42,11 @@ export function Header() {
 
     // Anchor link
     if (isHomePage) {
-      // Already on home page: scroll to section
       const el = document.querySelector(anchor);
       if (el) {
         el.scrollIntoView({ behavior: "smooth" });
       }
     } else {
-      // On another page: navigate to home, then scroll
       router.push(href + anchor);
     }
   };
@@ -68,7 +57,6 @@ export function Header() {
    * Page routes are active when pathname matches.
    */
   const isActive = (link: typeof navLinks[0]) => {
-    if (link.external) return false;
     if (!link.anchor) {
       // Direct page route
       return pathname === link.href;
@@ -106,18 +94,15 @@ export function Header() {
             {/* Desktop Nav */}
             <nav className="hidden lg:flex items-center gap-1">
               {navLinks.map((link) => {
-                const external = link.external;
                 const active = isActive(link);
                 return (
                   <a
                     key={link.label}
-                    href={external ? link.href : (link.anchor || link.href)}
+                    href={link.anchor || link.href}
                     onClick={(e) => {
                       e.preventDefault();
-                      handleNavClick(link.href, link.anchor, external);
+                      handleNavClick(link.href, link.anchor);
                     }}
-                    target={undefined}
-                    rel={undefined}
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer",
                       active
@@ -187,18 +172,15 @@ export function Header() {
             <div className="absolute top-16 right-0 left-0 bg-white shadow-xl border-b">
               <nav className="flex flex-col p-4 gap-1">
                 {navLinks.map((link) => {
-                  const external = link.external;
                   const active = isActive(link);
                   return (
                     <a
                       key={link.label}
-                      href={external ? link.href : (link.anchor || link.href)}
+                      href={link.anchor || link.href}
                       onClick={(e) => {
                         e.preventDefault();
-                        handleNavClick(link.href, link.anchor, external);
+                        handleNavClick(link.href, link.anchor);
                       }}
-                      target={undefined}
-                      rel={undefined}
                       className={cn(
                         "px-4 py-3 font-medium rounded-md transition-colors cursor-pointer",
                         active

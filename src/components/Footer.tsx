@@ -3,23 +3,21 @@
 import { usePathname, useRouter } from "next/navigation";
 import { MapPin, Phone, Mail, ArrowUp } from "lucide-react";
 
-const RESULTS_URL = "https://vbr-results-portal.vercel.app";
-
 const quickLinks = [
   { label: "Inicio", href: "/", anchor: "#inicio" },
   { label: "Nosotros", href: "/", anchor: "#nosotros" },
   { label: "Servicios", href: "/", anchor: "#servicios" },
   { label: "Eventos", href: "/", anchor: "#eventos" },
   { label: "Tienda", href: "/tienda" },
-  { label: "Resultados", href: RESULTS_URL, external: true },
+  { label: "Resultados", href: "/resultados" },
   { label: "Contacto", href: "/", anchor: "#contacto" },
 ];
 
 const serviceLinks = [
   { label: "Cronometraje", href: "/", anchor: "#servicios" },
   { label: "Inscripciones", href: "/", anchor: "#eventos" },
-  { label: "Resultados en Vivo", href: RESULTS_URL, external: true },
-  { label: "VBRWorks®", href: RESULTS_URL, external: true },
+  { label: "Resultados en Vivo", href: "/resultados" },
+  { label: "VBRWorks®", href: "/resultados" },
   { label: "Fotografía", href: "/", anchor: "#servicios" },
   { label: "Timing Tags", href: "/", anchor: "#servicios" },
 ];
@@ -29,14 +27,8 @@ export function Footer() {
   const router = useRouter();
   const isHomePage = pathname === "/";
 
-  const handleLinkClick = (href: string, anchor?: string, external?: boolean) => {
-    // External link: navigate in same tab so browser back button works
-    if (external) {
-      window.location.href = href;
-      return;
-    }
-
-    // Direct page route (e.g., /tienda)
+  const handleLinkClick = (href: string, anchor?: string) => {
+    // Direct page route (e.g., /tienda, /resultados)
     if (!anchor) {
       router.push(href);
       return;
@@ -100,11 +92,9 @@ export function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.anchor || link.href}
-                    target={undefined}
-                    rel={undefined}
                     onClick={(e) => {
                       e.preventDefault();
-                      handleLinkClick(link.href, link.anchor, link.external);
+                      handleLinkClick(link.href, link.anchor);
                     }}
                     className="text-white/60 hover:text-red-400 text-sm transition-colors cursor-pointer"
                   >
@@ -125,11 +115,9 @@ export function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.anchor || link.href}
-                    target={undefined}
-                    rel={undefined}
                     onClick={(e) => {
                       e.preventDefault();
-                      handleLinkClick(link.href, link.anchor, link.external);
+                      handleLinkClick(link.href, link.anchor);
                     }}
                     className="text-white/60 hover:text-red-400 text-sm transition-colors cursor-pointer"
                   >
