@@ -353,48 +353,49 @@ export async function ensureDbInitialized(): Promise<void> {
         prisma = new PrismaClient();
       }
 
-      // Create tables (with migration handling)
-      // First check if Event table has correct schema
+      // SAFE migration: Only fix schema if table exists and has NO real data
       try {
-        // Try to detect schema mismatch - categoryInterval should be TEXT
         const cols = await prisma.$queryRawUnsafe(`PRAGMA table_info("Event")`);
         const colInfo = cols as Array<{name: string; type: string}>;
         const catIntervalCol = colInfo.find(c => c.name === 'categoryInterval');
         
         if (catIntervalCol && catIntervalCol.type.toUpperCase() !== 'TEXT') {
-          console.log(`[db-init] Schema mismatch detected: categoryInterval is ${catIntervalCol.type}, should be TEXT. Recreating tables...`);
+          // Check if there are real registrations before dropping
+          const regCount = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as c FROM "Registration"`).then((r: any) => (r as any[])[0]?.c || 0);
           
-          // Drop tables in correct order (reverse FK dependencies)
-          await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "ProductOrder"`);
-          await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Product"`);
-          await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Registration"`);
-          await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Event"`);
-          
-          // Recreate with correct schema
-          const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(s => s.length > 0);
-          for (const sql of statements) {
-            await prisma.$executeRawUnsafe(sql);
+          if (Number(regCount) === 0) {
+            console.log(`[db-init] Schema mismatch (no hay inscripciones). Recreando tablas...`);
+            await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "ProductOrder"`);
+            await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Product"`);
+            await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Registration"`);
+            await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Event"`);
+            const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(s => s.length > 0);
+            for (const sql of statements) {
+              await prisma.$executeRawUnsafe(sql);
+            }
+            console.log("[db-init] Tablas recreadas con schema correcto.");
+          } else {
+            console.log(`[db-init] Schema mismatch PERO hay ${regCount} inscripciones. NO se borra nada.`);
           }
-          console.log("[db-init] Tables recreated with correct schema.");
         } else {
-          // Normal path: create if not exists
+          // Schema OK, just ensure tables exist
           const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(s => s.length > 0);
           for (const sql of statements) {
             await prisma.$executeRawUnsafe(sql);
           }
         }
       } catch (err) {
-        // If PRAGMA fails, just try creating tables normally
-        console.log("[db-init] PRAGMA check failed, creating tables normally:", err);
+        console.log("[db-init] PRAGMA check failed, creating tables:", err);
         const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(s => s.length > 0);
         for (const sql of statements) {
           await prisma.$executeRawUnsafe(sql);
         }
       }
 
-      // Seed events if empty
+      // Seed events ONLY if table is completely empty
       const count = await prisma.event.count();
       if (count === 0) {
+        console.log(`[db-init] Tabla vacía, sembrando ${SEED_EVENTS.length} eventos...`);
         for (const event of SEED_EVENTS) {
           await prisma.event.create({
             data: {
@@ -404,6 +405,9 @@ export async function ensureDbInitialized(): Promise<void> {
             },
           });
         }
+        console.log("[db-init] Seed completado.");
+      } else {
+        console.log(`[db-init] Ya hay ${count} eventos en la BD. No se sobreescriben.`);
       }
 
       await prisma.$disconnect();
