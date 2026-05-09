@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
@@ -7,18 +8,26 @@ import { Button } from "@/components/ui/button";
 import { SectionHeading } from "./SectionHeading";
 
 const partners = [
-  { name: "Maratón de Caracas", color: "bg-red-500" },
-  { name: "Farmaluna", color: "bg-emerald-500" },
-  { name: "Women's Run VE", color: "bg-pink-500" },
-  { name: "Ministerio del Deporte", color: "bg-red-600" },
-  { name: "Federación Venezolana de Atletismo", color: "bg-amber-500" },
-  { name: "La Autopista 21K", color: "bg-violet-500" },
-  { name: "Olympic Triathlon VE", color: "bg-teal-500" },
-  { name: "Movistar", color: "bg-cyan-500" },
-  { name: "Coca-Cola Venezuela", color: "bg-red-500" },
-  { name: "PDVSA", color: "bg-green-600" },
-  { name: "Banesco", color: "bg-yellow-600" },
-  { name: "Mercantil", color: "bg-blue-500" },
+  {
+    name: "World Triathlon",
+    logo: "/logo-world-athletics.png",
+  },
+  {
+    name: "UCI",
+    logo: "/logo-uci.png",
+  },
+  {
+    name: "World Athletics",
+    logo: "/logo-world-athletics-2.png",
+  },
+  {
+    name: "FEVE Tri",
+    logo: "/logo-fevetri.png",
+  },
+  {
+    name: "FVA",
+    logo: "/logo-fva.png",
+  },
 ];
 
 const testimonials = [
@@ -70,19 +79,49 @@ export function ClientsSection() {
 
         {/* Partner Logos */}
         <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 mb-16"
+          transition={{ duration: 0.6 }}
+          className="mb-16"
         >
-          {partners.map((partner) => (
-            <div
-              key={partner.name}
-              className={`${partner.color} rounded-xl p-4 flex items-center justify-center text-white font-semibold text-xs sm:text-sm text-center min-h-[72px] hover:scale-105 transition-transform cursor-default`}
-            >
-              {partner.name}
-            </div>
-          ))}
+          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-8 md:gap-x-16 lg:gap-x-20">
+            {partners.map((partner, index) => (
+              <motion.div
+                key={partner.name}
+                initial={{ opacity: 0, y: 15 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: index * 0.08 }}
+                className="group relative flex items-center justify-center"
+                title={partner.name}
+              >
+                <div className="relative flex items-center justify-center p-4 md:p-6 rounded-2xl transition-all duration-300 hover:bg-gray-50 hover:shadow-sm">
+                  {/* FVA and FEVE Tri logos — larger */}
+                  <Image
+                    src={partner.logo}
+                    alt={partner.name}
+                    width={
+                      partner.name === "FVA" || partner.name === "FEVE Tri"
+                        ? 120
+                        : partner.name === "UCI"
+                        ? 80
+                        : 140
+                    }
+                    height={
+                      partner.name === "FVA" || partner.name === "FEVE Tri"
+                        ? 120
+                        : partner.name === "UCI"
+                        ? 80
+                        : 60
+                    }
+                    className="object-contain transition-all duration-300 group-hover:scale-105 opacity-70 group-hover:opacity-100"
+                    priority={index < 3}
+                  />
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </motion.div>
 
         {/* Testimonials */}
