@@ -1,0 +1,325 @@
+// Explicit DB initialization for API routes
+// Ensures tables exist and seed data is loaded before any query
+
+import { PrismaClient } from '@prisma/client'
+import { PrismaLibSQL } from '@prisma/adapter-libsql'
+
+const CREATE_TABLES_SQL = `
+CREATE TABLE IF NOT EXISTS "Event" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "description" TEXT NOT NULL DEFAULT '',
+    "date" DATETIME NOT NULL,
+    "location" TEXT NOT NULL,
+    "distance" TEXT NOT NULL,
+    "category" TEXT NOT NULL DEFAULT 'running',
+    "sportType" TEXT NOT NULL DEFAULT 'running',
+    "imageUrl" TEXT NOT NULL DEFAULT '',
+    "bannerImage" TEXT NOT NULL DEFAULT '',
+    "price" REAL NOT NULL DEFAULT 0,
+    "priceBs" REAL NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'upcoming',
+    "maxParticipants" INTEGER NOT NULL DEFAULT 500,
+    "featured" BOOLEAN NOT NULL DEFAULT 0,
+    "organizer" TEXT NOT NULL DEFAULT '',
+    "prizes" TEXT NOT NULL DEFAULT '',
+    "rules" TEXT NOT NULL DEFAULT '',
+    "kitInfo" TEXT NOT NULL DEFAULT '',
+    "sponsors" TEXT NOT NULL DEFAULT '',
+    "categories" TEXT NOT NULL DEFAULT '',
+    "ageCalcMode" TEXT NOT NULL DEFAULT 'calendar_year',
+    "categoryInterval" TEXT NOT NULL DEFAULT '10',
+    "hasShirt" BOOLEAN NOT NULL DEFAULT 1,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "Event_slug_key" ON "Event"("slug");
+
+CREATE TABLE IF NOT EXISTS "Registration" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "eventId" TEXT NOT NULL,
+    "firstName" TEXT NOT NULL,
+    "lastName" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
+    "idNumber" TEXT NOT NULL DEFAULT '',
+    "gender" TEXT NOT NULL,
+    "dateOfBirth" TEXT NOT NULL,
+    "shirtSize" TEXT NOT NULL DEFAULT '',
+    "category" TEXT NOT NULL,
+    "team" TEXT NOT NULL DEFAULT '',
+    "emergencyContact" TEXT NOT NULL DEFAULT '',
+    "emergencyPhone" TEXT NOT NULL DEFAULT '',
+    "paymentMethod" TEXT NOT NULL DEFAULT '',
+    "paymentRef" TEXT NOT NULL DEFAULT '',
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "waiverAccepted" BOOLEAN NOT NULL DEFAULT 0,
+    "bibNumber" INTEGER,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "mtbProfile" TEXT NOT NULL DEFAULT '',
+    FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS "Product" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "eventId" TEXT,
+    "name" TEXT NOT NULL,
+    "description" TEXT NOT NULL DEFAULT '',
+    "price" REAL NOT NULL DEFAULT 0,
+    "priceBs" REAL NOT NULL DEFAULT 0,
+    "imageUrl" TEXT NOT NULL DEFAULT '',
+    "images" TEXT NOT NULL DEFAULT '[]',
+    "sizes" TEXT NOT NULL DEFAULT '[]',
+    "color" TEXT NOT NULL DEFAULT '',
+    "stock" INTEGER NOT NULL DEFAULT 0,
+    "active" BOOLEAN NOT NULL DEFAULT 1,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS "ProductOrder" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "productId" TEXT NOT NULL,
+    "firstName" TEXT NOT NULL,
+    "lastName" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
+    "idNumber" TEXT NOT NULL DEFAULT '',
+    "size" TEXT NOT NULL DEFAULT '',
+    "color" TEXT NOT NULL DEFAULT '',
+    "quantity" INTEGER NOT NULL DEFAULT 1,
+    "totalPrice" REAL NOT NULL DEFAULT 0,
+    "totalPriceBs" REAL NOT NULL DEFAULT 0,
+    "paymentMethod" TEXT NOT NULL DEFAULT '',
+    "paymentRef" TEXT NOT NULL DEFAULT '',
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "notes" TEXT NOT NULL DEFAULT '',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+`;
+
+const SEED_EVENTS = [
+  {
+    id: "cmouqk7300000peaj68nvak7u",
+    title: "WOMENS RUN",
+    slug: "womens-run-2024",
+    description: "La carrera más grande de mujeres en Venezuela. Únete a miles de corredoras en esta emocionante prueba de 5K. Un evento diseñado para celebrar la fuerza, determinación y espíritu deportivo de la mujer venezolana.",
+    date: "2026-06-06T00:16:23.770Z",
+    location: "Caracas, Venezuela",
+    distance: "5K",
+    category: "Carrera",
+    sportType: "running",
+    imageUrl: "/event-womens-run.jpg",
+    bannerImage: "",
+    price: 35,
+    priceBs: 0,
+    status: "upcoming",
+    maxParticipants: 2000,
+    featured: true,
+    organizer: "",
+    prizes: "",
+    rules: "",
+    kitInfo: "",
+    sponsors: "",
+    categories: "",
+    ageCalcMode: "calendar_year",
+    categoryInterval: "10",
+    hasShirt: true,
+  },
+  {
+    id: "cmouqk7320001peaj38mchqx3",
+    title: "21K LA AUTOPISTA",
+    slug: "21k-la-autopista",
+    description: "La media maratón más emblemática del país. Recorre la autopista en una experiencia única con cierre total de vías. Miles de corredores disfrutan de este evento que combina deportividad y espectacularidad.",
+    date: "2026-08-23T00:16:23.770Z",
+    location: "Autopista Regional del Centro, Venezuela",
+    distance: "21K",
+    category: "Carrera",
+    sportType: "running",
+    imageUrl: "/event-21k-autopista.jpg",
+    bannerImage: "",
+    price: 65,
+    priceBs: 0,
+    status: "upcoming",
+    maxParticipants: 5000,
+    featured: true,
+    organizer: "",
+    prizes: "",
+    rules: "",
+    kitInfo: "",
+    sponsors: "",
+    categories: "",
+    ageCalcMode: "calendar_year",
+    categoryInterval: "10",
+    hasShirt: true,
+  },
+  {
+    id: "cmouqk7330002peajacov64kx",
+    title: "FARMALUNA 10K",
+    slug: "farmaluna-10k-2024",
+    description: "Corre bajo la luz de la luna en esta mágica carrera nocturna. La Farmaluna 10K te ofrece una experiencia diferente con iluminación especial, música en vivo y un ambiente incomparable.",
+    date: "2026-05-22T00:16:23.770Z",
+    location: "Caracas, Venezuela",
+    distance: "10K",
+    category: "Carrera",
+    sportType: "running",
+    imageUrl: "/event-farmaluna.jpg",
+    bannerImage: "",
+    price: 45,
+    priceBs: 0,
+    status: "upcoming",
+    maxParticipants: 3000,
+    featured: false,
+    organizer: "",
+    prizes: "",
+    rules: "",
+    kitInfo: "",
+    sponsors: "",
+    categories: "",
+    ageCalcMode: "calendar_year",
+    categoryInterval: "10",
+    hasShirt: true,
+  },
+  {
+    id: "cmouqk7340003peajm6kd9t8x",
+    title: "LA RUTA DIGITAL",
+    slug: "la-ruta-digital-2024",
+    description: "El primer evento virtual integrado con tecnología de punta. Corre desde cualquier lugar, registra tu recorrido y compite con atletas de todo el país. Resultados en tiempo real a través de nuestra plataforma VBRWorks.",
+    date: "2026-06-07T00:16:23.770Z",
+    location: "Virtual - Desde cualquier lugar",
+    distance: "10K Virtual",
+    category: "Virtual",
+    sportType: "running",
+    imageUrl: "/event-ruta-digital.jpg",
+    bannerImage: "",
+    price: 25,
+    priceBs: 0,
+    status: "upcoming",
+    maxParticipants: 10000,
+    featured: false,
+    organizer: "",
+    prizes: "",
+    rules: "",
+    kitInfo: "",
+    sponsors: "",
+    categories: "",
+    ageCalcMode: "calendar_year",
+    categoryInterval: "10",
+    hasShirt: true,
+  },
+  {
+    id: "cmouqk7350004peajb9ekzxqd",
+    title: "MARATÓN DE CARACAS",
+    slug: "maraton-caracas-2024",
+    description: "El maratón más importante de Venezuela. 42 kilómetros de pura emoción recorriendo las calles más emblemáticas de la capital. Un desafío para los corredores más exigentes.",
+    date: "2026-07-06T00:16:23.770Z",
+    location: "Caracas, Venezuela",
+    distance: "42K",
+    category: "Carrera",
+    sportType: "running",
+    imageUrl: "/event-maraton-caracas.jpg",
+    bannerImage: "",
+    price: 85,
+    priceBs: 0,
+    status: "upcoming",
+    maxParticipants: 4000,
+    featured: false,
+    organizer: "",
+    prizes: "",
+    rules: "",
+    kitInfo: "",
+    sponsors: "",
+    categories: "",
+    ageCalcMode: "calendar_year",
+    categoryInterval: "10",
+    hasShirt: true,
+  },
+  {
+    id: "cmouqk7360005peajp7h5ns41",
+    title: "TRIATLÓN VZLA",
+    slug: "triatlon-vzla-2024",
+    description: "El triatlón más completo de Venezuela. Distancia olímpica: 1.5km de natación, 40km de ciclismo y 10km de carrera. Un evento para atletas que buscan superar sus límites en tres disciplinas.",
+    date: "2026-08-05T00:16:23.770Z",
+    location: "Valencia, Venezuela",
+    distance: "Distancia Olímpica",
+    category: "Triatlón",
+    sportType: "running",
+    imageUrl: "/event-triatlon.jpg",
+    bannerImage: "",
+    price: 120,
+    priceBs: 0,
+    status: "upcoming",
+    maxParticipants: 500,
+    featured: false,
+    organizer: "",
+    prizes: "",
+    rules: "",
+    kitInfo: "",
+    sponsors: "",
+    categories: "",
+    ageCalcMode: "calendar_year",
+    categoryInterval: "10",
+    hasShirt: true,
+  },
+];
+
+let initialized = false;
+let initPromise: Promise<void> | null = null;
+
+export async function ensureDbInitialized(): Promise<void> {
+  if (initialized) return;
+  if (initPromise) return initPromise;
+
+  initPromise = (async () => {
+    try {
+      // Create a direct client for init (avoids circular deps with db.ts)
+      let dbUrl = process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL || '';
+      let prisma: PrismaClient;
+
+      if (dbUrl.startsWith('libsql://')) {
+        const adapter = new PrismaLibSQL({ url: dbUrl, authToken: process.env.TURSO_AUTH_TOKEN || undefined });
+        prisma = new PrismaClient({ adapter });
+      } else if (process.env.NODE_ENV === 'production' && !dbUrl.startsWith('file:')) {
+        const adapter = new PrismaLibSQL({ url: 'file:/tmp/vzlabike.db' });
+        prisma = new PrismaClient({ adapter });
+      } else if (dbUrl.startsWith('file:')) {
+        const adapter = new PrismaLibSQL({ url: dbUrl });
+        prisma = new PrismaClient({ adapter });
+      } else {
+        prisma = new PrismaClient();
+      }
+
+      // Create tables
+      const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(s => s.length > 0);
+      for (const sql of statements) {
+        await prisma.$executeRawUnsafe(sql);
+      }
+
+      // Seed events if empty
+      const count = await prisma.event.count();
+      if (count === 0) {
+        for (const event of SEED_EVENTS) {
+          await prisma.event.create({
+            data: {
+              ...event,
+              createdAt: new Date("2026-05-07T00:16:23.772Z"),
+              updatedAt: new Date("2026-05-07T00:16:23.772Z"),
+            },
+          });
+        }
+      }
+
+      await prisma.$disconnect();
+      initialized = true;
+    } catch (err) {
+      console.error("[db-init] Error:", err);
+      initPromise = null; // Allow retry
+    }
+  })();
+
+  return initPromise;
+}

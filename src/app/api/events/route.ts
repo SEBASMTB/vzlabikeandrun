@@ -1,9 +1,11 @@
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
+import { ensureDbInitialized } from "@/lib/db-init";
 
 export async function GET() {
   try {
+    await ensureDbInitialized();
     const events = await db.event.findMany({
       orderBy: { date: "asc" },
       include: {
@@ -11,7 +13,8 @@ export async function GET() {
       },
     });
     return NextResponse.json(events);
-  } catch {
+  } catch (err) {
+    console.error("[API /events] Error:", err);
     return NextResponse.json(
       { error: "Error al obtener eventos" },
       { status: 500 }
