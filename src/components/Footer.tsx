@@ -2,26 +2,32 @@
 
 import { MapPin, Phone, Mail, ArrowUp } from "lucide-react";
 
+const RESULTS_URL = "https://vbr-results-portal.vercel.app";
+
 const quickLinks = [
   { label: "Inicio", href: "#inicio" },
   { label: "Nosotros", href: "#nosotros" },
   { label: "Servicios", href: "#servicios" },
   { label: "Eventos", href: "#eventos" },
-  { label: "Resultados", href: "#resultados" },
+  { label: "Resultados", href: RESULTS_URL, external: true },
   { label: "Contacto", href: "#contacto" },
 ];
 
 const serviceLinks = [
   { label: "Cronometraje", href: "#servicios" },
   { label: "Inscripciones", href: "#eventos" },
-  { label: "Resultados en Vivo", href: "#resultados" },
-  { label: "VBRWorks®", href: "#resultados" },
+  { label: "Resultados en Vivo", href: RESULTS_URL, external: true },
+  { label: "VBRWorks®", href: RESULTS_URL, external: true },
   { label: "Fotografía", href: "#servicios" },
   { label: "Timing Tags", href: "#servicios" },
 ];
 
 export function Footer() {
-  const handleScroll = (href: string) => {
+  const handleLinkClick = (href: string, external?: boolean) => {
+    if (external) {
+      window.open(href, "_blank", "noopener,noreferrer");
+      return;
+    }
     const el = document.querySelector(href);
     if (el) el.scrollIntoView({ behavior: "smooth" });
   };
@@ -75,9 +81,11 @@ export function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.href}
+                    target={(link as any).external ? "_blank" : undefined}
+                    rel={(link as any).external ? "noopener noreferrer" : undefined}
                     onClick={(e) => {
                       e.preventDefault();
-                      handleScroll(link.href);
+                      handleLinkClick(link.href, (link as any).external);
                     }}
                     className="text-white/60 hover:text-red-400 text-sm transition-colors"
                   >
@@ -98,9 +106,11 @@ export function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.href}
+                    target={(link as any).external ? "_blank" : undefined}
+                    rel={(link as any).external ? "noopener noreferrer" : undefined}
                     onClick={(e) => {
                       e.preventDefault();
-                      handleScroll(link.href);
+                      handleLinkClick(link.href, (link as any).external);
                     }}
                     className="text-white/60 hover:text-red-400 text-sm transition-colors"
                   >

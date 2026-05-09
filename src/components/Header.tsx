@@ -13,7 +13,7 @@ const navLinks = [
   { label: "Servicios", href: "#servicios" },
   { label: "Eventos", href: "#eventos" },
   { label: "Tienda", href: "/tienda" },
-  { label: "Resultados", href: "#resultados" },
+  { label: "Resultados", href: "https://vbr-results-portal.vercel.app", external: true },
   { label: "Contacto", href: "#contacto" },
 ];
 
@@ -24,8 +24,12 @@ export function Header() {
 
   const isHomePage = pathname === "/";
 
-  const handleNavClick = (href: string) => {
+  const handleNavClick = (href: string, external?: boolean) => {
     setMobileOpen(false);
+    if (external) {
+      window.open(href, "_blank", "noopener,noreferrer");
+      return;
+    }
     if (href.startsWith("/")) {
       router.push(href);
       return;
@@ -66,14 +70,17 @@ export function Header() {
               {navLinks.map((link) => {
                 const isPage = link.href.startsWith("/");
                 const isTienda = isPage && pathname === link.href;
+                const isExternal = (link as any).external;
                 return (
                   <a
                     key={link.href}
                     href={link.href}
                     onClick={(e) => {
                       e.preventDefault();
-                      handleNavClick(link.href);
+                      handleNavClick(link.href, isExternal);
                     }}
+                    target={isExternal ? "_blank" : undefined}
+                    rel={isExternal ? "noopener noreferrer" : undefined}
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       isTienda
@@ -146,14 +153,17 @@ export function Header() {
               <nav className="flex flex-col p-4 gap-1">
                 {navLinks.map((link) => {
                   const isPage = link.href.startsWith("/");
+                  const isExternal = (link as any).external;
                   return (
                     <a
                       key={link.href}
                       href={link.href}
                       onClick={(e) => {
                         e.preventDefault();
-                        handleNavClick(link.href);
+                        handleNavClick(link.href, isExternal);
                       }}
+                      target={isExternal ? "_blank" : undefined}
+                      rel={isExternal ? "noopener noreferrer" : undefined}
                       className={cn(
                         "px-4 py-3 font-medium rounded-md transition-colors",
                         isPage

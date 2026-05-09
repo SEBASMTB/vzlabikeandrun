@@ -15,6 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "./SectionHeading";
 
+const RESULTS_URL = "https://vbr-results-portal.vercel.app";
+
 const platformFeatures = [
   {
     icon: Monitor,
@@ -186,9 +188,9 @@ export function PlatformSection() {
           <Button
             size="lg"
             className="gradient-primary text-white border-0 text-base px-8 h-12"
-            onClick={() => handleScroll("#contacto")}
+            onClick={() => window.open(RESULTS_URL, "_blank", "noopener,noreferrer")}
           >
-            Solicitar Demo de VBRWorks®
+            Ver Plataforma de Resultados
             <ArrowRight className="size-5" />
           </Button>
         </motion.div>

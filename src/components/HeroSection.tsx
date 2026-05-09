@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useSyncExternalStore } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowDown, ChevronRight } from "lucide-react";
+import { ArrowDown, ChevronRight, ExternalLink, Trophy, Clock, BarChart3 } from "lucide-react";
 import { CountdownTimer } from "./CountdownTimer";
 
 interface CounterProps {
@@ -97,12 +97,49 @@ export function HeroSection() {
             Soluciones Integrales en Ingeniería de Eventos y Cronometraje Deportivo
           </p>
 
-          <p className="text-base md:text-lg text-white/70 max-w-2xl mb-8 leading-relaxed">
+          <p className="text-base md:text-lg text-white/70 max-w-2xl mb-6 leading-relaxed">
             En Venezuela Bike & Run, no solo medimos el tiempo; diseñamos experiencias
             competitivas de clase mundial. Ofrecemos una gestión integral de 360°,
             acompañando a organizadores y marcas desde la concepción de la idea hasta
             la publicación del último resultado.
           </p>
+
+          {/* Results Platform Banner */}
+          <motion.div
+            initial={{ opacity: 0, y: 15, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="bg-gradient-to-r from-red-600/20 via-red-500/10 to-orange-500/20 border border-red-400/30 rounded-2xl p-5 md:p-6 mb-8 max-w-2xl"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center shrink-0">
+                <Trophy className="size-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg md:text-xl font-bold text-white mb-1">
+                  La Mejor Plataforma de Resultados de Venezuela
+                </h3>
+                <p className="text-sm text-white/75 mb-3 leading-relaxed">
+                  Consulta resultados en tiempo real, tiempos parciales, clasificaciones por categoría y mucho más. No existe otra plataforma igual en el país.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <a
+                    href="https://vbr-results-portal.vercel.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+                  >
+                    Ver Resultados
+                    <ExternalLink className="size-4" />
+                  </a>
+                  <div className="flex items-center gap-3 text-xs text-white/60">
+                    <span className="flex items-center gap-1"><Clock className="size-3.5" /> Tiempo Real</span>
+                    <span className="flex items-center gap-1"><BarChart3 className="size-3.5" /> Estadísticas</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
 
           <div className="flex flex-col sm:flex-row gap-4">
             <Button
