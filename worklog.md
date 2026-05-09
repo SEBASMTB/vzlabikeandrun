@@ -151,3 +151,26 @@ Stage Summary:
 - Changed Node.js version to 22.x for Vercel compatibility
 - Production URL: https://my-project-venezuelabike-9338s-projects.vercel.app
 - Confirmation banner is now live with: big animated check, bib number, 3 info cards (payment, confirmation email, 24-48hr payment confirmation)
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Hardening production for high traffic - DB safety, rate limiting, health check, security
+
+Work Log:
+- Rewrote src/lib/db.ts: removed ALL DROP TABLE statements, added safeRawQuery with exponential backoff (3 retries, 1s/2s/4s), added migrateMissingColumns (ALTER TABLE ADD COLUMN instead of destroying tables), added concurrency:10 to PrismaLibSQL adapter
+- Rewrote src/lib/db-init.ts: same safe approach, no destructive operations, safe column migration, retry logic
+- Created src/lib/rate-limit.ts: in-memory rate limiter with configurable windows per endpoint (register: 5/60s, register-group: 3/60s, product-order: 5/60s, auth: 10/60s, general: 60/60s)
+- Created /api/health endpoint: returns DB connectivity, latency, event count, registration count, memory usage, uptime
+- Applied rate limiting to: /api/events/[slug]/register, /api/events/[slug]/register-group, /api/products/[id]/order, /api/admin/auth
+- Updated next.config.ts: added security headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy), cache policies for public APIs (s-maxage=10 + stale-while-revalidate=30), immutable cache for static assets, 1hr cache for event images
+- Build passed, deployed to Vercel production
+- Verified: health check returns OK (769ms DB latency, 8 events, 0 registrations), all 8 events loading correctly
+
+Stage Summary:
+- DB layer is now completely safe: zero DROP TABLE statements, safe column migration, retry with backoff
+- Rate limiting on all public write endpoints prevents spam/abuse
+- Health check endpoint available at /api/health for monitoring (UptimeRobot, BetterUptime)
+- Security headers added site-wide (anti-clickjacking, XSS protection, nosniff)
+- Cache headers optimized: public APIs get 10s cache with 30s stale-while-revalidate to absorb traffic spikes
+- Production URL: https://my-project-venezuelabike-9338s-projects.vercel.app

@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { sendPreRegistrationEmail } from "@/lib/email";
 import { calculateAge, parseEventCategories, validateMTBCategory } from "@/lib/categories";
+import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 interface GroupParticipant {
   firstName: string;
@@ -19,6 +20,18 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    // Rate limit: 3 group registrations per 60s per IP
+    const limit = rateLimit(request, RATE_LIMITS.registerGroup);
+    if (!limit.success) {
+      return NextResponse.json(
+        { error: "Demasiadas solicitudes. Intenta de nuevo en unos segundos." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(limit.retryAfter) },
+        }
+      );
+    }
+
     const { slug } = await params;
     const body = await request.json();
     const {

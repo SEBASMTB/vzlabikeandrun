@@ -2,12 +2,34 @@ import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { sendPreRegistrationEmail } from "@/lib/email";
 import { calculateAge, parseEventCategories, validateMTBCategory } from "@/lib/categories";
+import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    // Rate limit: 5 registrations per 60s per IP
+    const limit = rateLimit(request, RATE_LIMITS.register);
+    if (!limit.success) {
+      return NextResponse.json(
+        { error: "Demasiadas solicitudes. Intenta de nuevo en unos segundos." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(limit.retryAfter) },
+        }
+      );
+    }
+
+    // Limit request body size (prevent huge payloads)
+    const contentLength = request.headers.get("content-length");
+    if (contentLength && parseInt(contentLength) > 10_000) {
+      return NextResponse.json(
+        { error: "La solicitud es demasiado grande" },
+        { status: 413 }
+      );
+    }
+
     const { slug } = await params;
     const body = await request.json();
     const {

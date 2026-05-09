@@ -7,6 +7,8 @@ const globalForPrisma = globalThis as unknown as {
   dbInitialized: boolean | undefined
 }
 
+// ── Seed data (8 events, NEVER modify) ──────────────────────────────────────
+
 const SEED_EVENTS = [
   {
     id: "evt-la-culata-001",
@@ -226,6 +228,8 @@ const SEED_EVENTS = [
   },
 ];
 
+// ── DDL (CREATE TABLE IF NOT EXISTS only – NO DROP TABLE ever) ─────────────
+
 const CREATE_TABLES_SQL = `
 CREATE TABLE IF NOT EXISTS "Event" (
     "id" TEXT NOT NULL PRIMARY KEY,
@@ -324,46 +328,203 @@ CREATE TABLE IF NOT EXISTS "ProductOrder" (
 );
 `;
 
+// ── Expected schema per table (column name → SQLite type for ALTER TABLE) ──
+
+const EXPECTED_COLUMNS: Record<string, Record<string, string>> = {
+  Event: {
+    id: 'TEXT NOT NULL PRIMARY KEY',
+    title: 'TEXT NOT NULL',
+    slug: 'TEXT NOT NULL',
+    description: "TEXT NOT NULL DEFAULT ''",
+    date: 'DATETIME NOT NULL',
+    location: 'TEXT NOT NULL',
+    distance: 'TEXT NOT NULL',
+    category: "TEXT NOT NULL DEFAULT 'running'",
+    sportType: "TEXT NOT NULL DEFAULT 'running'",
+    imageUrl: "TEXT NOT NULL DEFAULT ''",
+    bannerImage: "TEXT NOT NULL DEFAULT ''",
+    price: 'REAL NOT NULL DEFAULT 0',
+    priceBs: 'REAL NOT NULL DEFAULT 0',
+    status: "TEXT NOT NULL DEFAULT 'upcoming'",
+    maxParticipants: 'INTEGER NOT NULL DEFAULT 500',
+    featured: 'BOOLEAN NOT NULL DEFAULT 0',
+    organizer: "TEXT NOT NULL DEFAULT ''",
+    prizes: "TEXT NOT NULL DEFAULT ''",
+    rules: "TEXT NOT NULL DEFAULT ''",
+    kitInfo: "TEXT NOT NULL DEFAULT ''",
+    sponsors: "TEXT NOT NULL DEFAULT ''",
+    categories: "TEXT NOT NULL DEFAULT ''",
+    ageCalcMode: "TEXT NOT NULL DEFAULT 'calendar_year'",
+    categoryInterval: "TEXT NOT NULL DEFAULT '10'",
+    hasShirt: 'BOOLEAN NOT NULL DEFAULT 1',
+    createdAt: 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
+    updatedAt: 'DATETIME NOT NULL',
+  },
+  Registration: {
+    id: 'TEXT NOT NULL PRIMARY KEY',
+    eventId: 'TEXT NOT NULL',
+    firstName: 'TEXT NOT NULL',
+    lastName: 'TEXT NOT NULL',
+    email: 'TEXT NOT NULL',
+    phone: 'TEXT NOT NULL',
+    idNumber: "TEXT NOT NULL DEFAULT ''",
+    gender: 'TEXT NOT NULL',
+    dateOfBirth: 'TEXT NOT NULL',
+    shirtSize: "TEXT NOT NULL DEFAULT ''",
+    category: 'TEXT NOT NULL',
+    team: "TEXT NOT NULL DEFAULT ''",
+    emergencyContact: "TEXT NOT NULL DEFAULT ''",
+    emergencyPhone: "TEXT NOT NULL DEFAULT ''",
+    paymentMethod: "TEXT NOT NULL DEFAULT ''",
+    paymentRef: "TEXT NOT NULL DEFAULT ''",
+    status: "TEXT NOT NULL DEFAULT 'pending'",
+    waiverAccepted: 'BOOLEAN NOT NULL DEFAULT 0',
+    bibNumber: 'INTEGER',
+    createdAt: 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
+    mtbProfile: "TEXT NOT NULL DEFAULT ''",
+  },
+  Product: {
+    id: 'TEXT NOT NULL PRIMARY KEY',
+    eventId: 'TEXT',
+    name: 'TEXT NOT NULL',
+    description: "TEXT NOT NULL DEFAULT ''",
+    price: 'REAL NOT NULL DEFAULT 0',
+    priceBs: 'REAL NOT NULL DEFAULT 0',
+    imageUrl: "TEXT NOT NULL DEFAULT ''",
+    images: "TEXT NOT NULL DEFAULT '[]'",
+    sizes: "TEXT NOT NULL DEFAULT '[]'",
+    color: "TEXT NOT NULL DEFAULT ''",
+    stock: 'INTEGER NOT NULL DEFAULT 0',
+    active: 'BOOLEAN NOT NULL DEFAULT 1',
+    sortOrder: 'INTEGER NOT NULL DEFAULT 0',
+    createdAt: 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
+    updatedAt: 'DATETIME NOT NULL',
+  },
+  ProductOrder: {
+    id: 'TEXT NOT NULL PRIMARY KEY',
+    productId: 'TEXT NOT NULL',
+    firstName: 'TEXT NOT NULL',
+    lastName: 'TEXT NOT NULL',
+    email: 'TEXT NOT NULL',
+    phone: 'TEXT NOT NULL',
+    idNumber: "TEXT NOT NULL DEFAULT ''",
+    size: "TEXT NOT NULL DEFAULT ''",
+    color: "TEXT NOT NULL DEFAULT ''",
+    quantity: 'INTEGER NOT NULL DEFAULT 1',
+    totalPrice: 'REAL NOT NULL DEFAULT 0',
+    totalPriceBs: 'REAL NOT NULL DEFAULT 0',
+    paymentMethod: "TEXT NOT NULL DEFAULT ''",
+    paymentRef: "TEXT NOT NULL DEFAULT ''",
+    status: "TEXT NOT NULL DEFAULT 'pending'",
+    notes: "TEXT NOT NULL DEFAULT ''",
+    createdAt: 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
+  },
+};
+
+// ── Retry helper with exponential backoff ──────────────────────────────────
+
+const RETRY_DELAYS = [1000, 2000, 4000]; // 1s, 2s, 4s
+
+async function safeRawQuery<T = unknown>(
+  prisma: PrismaClient,
+  operation: 'query' | 'execute',
+  sql: string,
+  maxRetries: number = 3,
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (operation === 'query') {
+        return (await prisma.$queryRawUnsafe(sql)) as T;
+      } else {
+        return (await prisma.$executeRawUnsafe(sql)) as T;
+      }
+    } catch (err) {
+      lastError = err;
+      if (attempt < maxRetries) {
+        const delay = RETRY_DELAYS[attempt] ?? 4000;
+        console.warn(
+          `[DB] Query failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms…`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw lastError;
+}
+
+// ── Safe column migration (ALTER TABLE ADD COLUMN for missing columns) ─────
+
+async function migrateMissingColumns(prisma: PrismaClient): Promise<void> {
+  for (const [table, columns] of Object.entries(EXPECTED_COLUMNS)) {
+    try {
+      const existing = (await safeRawQuery<Array<{ name: string }>>(
+        prisma,
+        'query',
+        `PRAGMA table_info("${table}")`,
+      )) as Array<{ name: string }>;
+
+      const existingNames = new Set(existing.map((c) => c.name));
+
+      for (const [col, typeDef] of Object.entries(columns)) {
+        if (!existingNames.has(col)) {
+          try {
+            await safeRawQuery(
+              prisma,
+              'execute',
+              `ALTER TABLE "${table}" ADD COLUMN "${col}" ${typeDef}`,
+            );
+            console.log(`[DB] Migration: added column "${col}" to "${table}"`);
+          } catch (alterErr) {
+            // SQLite ALTER TABLE ADD COLUMN has limitations (e.g. can't add
+            // PRIMARY KEY or UNIQUE). Log and continue – don't crash.
+            console.warn(
+              `[DB] Could not add column "${col}" to "${table}":`,
+              alterErr,
+            );
+          }
+        }
+      }
+    } catch (pragmaErr) {
+      // Table might not exist yet – that's fine, CREATE TABLE IF NOT EXISTS
+      // will handle it.
+      console.warn(
+        `[DB] Could not read schema for "${table}" (table may not exist yet):`,
+        pragmaErr,
+      );
+    }
+  }
+}
+
+// ── Initialization ─────────────────────────────────────────────────────────
+
 let initPromise: Promise<void> | null = null;
 
 async function initAndSeed(prisma: PrismaClient) {
   if (globalForPrisma.dbInitialized) return;
-  
+
   // If init is already in progress, wait for it
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
     try {
-      // SAFE migration: Only fix schema if table exists and has NO real data
       console.log("[DB] Verificando/creando tablas...");
-      try {
-        const cols = await prisma.$queryRawUnsafe(`PRAGMA table_info("Event")`);
-        const colInfo = cols as Array<{name: string; type: string}>;
-        const catIntervalCol = colInfo.find(c => c.name === 'categoryInterval');
-        
-        if (catIntervalCol && catIntervalCol.type.toUpperCase() !== 'TEXT') {
-          // Check if there are real registrations before dropping
-          const regCount = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as c FROM "Registration"`).then((r: any) => (r as any[])[0]?.c || 0);
-          
-          if (Number(regCount) === 0) {
-            console.log("[DB] Schema mismatch (sin inscripciones). Recreando...");
-            await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "ProductOrder"`);
-            await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Product"`);
-            await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Registration"`);
-            await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Event"`);
-          } else {
-            console.log(`[DB] Schema mismatch PERO hay ${regCount} inscripciones. NO se toca nada.`);
-          }
-        }
-      } catch {}
-      
-      const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(s => s.length > 0);
-      for (const sql of statements) {
-        await prisma.$executeRawUnsafe(sql);
-      }
-      console.log("[DB] Tablas verificadas.");
 
-      // Seed events if empty
+      // Step 1: CREATE TABLE IF NOT EXISTS (safe – no-op when table exists)
+      const statements = CREATE_TABLES_SQL
+        .split(';')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+
+      for (const sql of statements) {
+        await safeRawQuery(prisma, 'execute', sql);
+      }
+      console.log("[DB] Tablas verificadas (CREATE IF NOT EXISTS OK).");
+
+      // Step 2: Migrate missing columns (safe – ADD COLUMN is a no-op if exists)
+      await migrateMissingColumns(prisma);
+
+      // Step 3: Seed events ONLY if the table is completely empty
       const count = await prisma.event.count();
       if (count === 0) {
         console.log("[DB] Base de datos vacía, sembrando eventos iniciales...");
@@ -391,8 +552,9 @@ async function initAndSeed(prisma: PrismaClient) {
   return initPromise;
 }
 
-function createPrismaClient() {
-  // Priority: 1) Turso (libsql://), 2) DATABASE_URL, 3) /tmp fallback in prod
+// ── Prisma client factory (Turso → DATABASE_URL → /tmp → direct) ──────────
+
+function createPrismaClient(): PrismaClient {
   const tursoUrl = process.env.TURSO_DATABASE_URL || ''
   const tursoToken = process.env.TURSO_AUTH_TOKEN || ''
   const dbUrl = process.env.DATABASE_URL || ''
@@ -403,37 +565,56 @@ function createPrismaClient() {
     const adapter = new PrismaLibSQL({
       url: tursoUrl,
       authToken: tursoToken || undefined,
+      concurrency: 10,
     })
-    return new PrismaClient({ adapter })
+    return new PrismaClient({
+      adapter,
+    })
   }
 
-  // 2. DATABASE_URL (local dev or file-based)
-  if (dbUrl.startsWith('file:')) {
-    console.log(`[DB] Usando SQLite local: ${dbUrl}`)
-    const adapter = new PrismaLibSQL({ url: dbUrl })
-    return new PrismaClient({ adapter })
-  }
-
+  // 2. DATABASE_URL – libsql
   if (dbUrl.startsWith('libsql://')) {
     console.log("[DB] Usando DATABASE_URL (libsql)")
     const adapter = new PrismaLibSQL({
       url: dbUrl,
       authToken: tursoToken || undefined,
+      concurrency: 10,
     })
-    return new PrismaClient({ adapter })
+    return new PrismaClient({
+      adapter,
+    })
   }
 
-  // 3. Last resort: /tmp in production
+  // 3. DATABASE_URL – local file
+  if (dbUrl.startsWith('file:')) {
+    console.log(`[DB] Usando SQLite local: ${dbUrl}`)
+    const adapter = new PrismaLibSQL({
+      url: dbUrl,
+      concurrency: 10,
+    })
+    return new PrismaClient({
+      adapter,
+    })
+  }
+
+  // 4. Last resort: /tmp in production
   if (process.env.NODE_ENV === 'production') {
     console.log("[DB] WARNING: Usando /tmp (datos temporales, se pierden al reiniciar)")
-    const adapter = new PrismaLibSQL({ url: 'file:/tmp/vzlabike.db' })
-    return new PrismaClient({ adapter })
+    const adapter = new PrismaLibSQL({
+      url: 'file:/tmp/vzlabike.db',
+      concurrency: 10,
+    })
+    return new PrismaClient({
+      adapter,
+    })
   }
 
   // Fallback: direct PrismaClient (local dev)
   console.log("[DB] Usando PrismaClient directo")
   return new PrismaClient()
 }
+
+// ── Singleton & Proxy ──────────────────────────────────────────────────────
 
 const _prismaClient =
   globalForPrisma.prisma ??

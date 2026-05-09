@@ -1,11 +1,24 @@
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Rate limit: 5 orders per 60s per IP
+    const limit = rateLimit(request, RATE_LIMITS.productOrder);
+    if (!limit.success) {
+      return NextResponse.json(
+        { error: "Demasiadas solicitudes. Intenta de nuevo en unos segundos." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(limit.retryAfter) },
+        }
+      );
+    }
+
     const { id: productId } = await params;
     const body = await request.json();
 

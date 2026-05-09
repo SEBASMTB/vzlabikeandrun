@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { comparePassword, createToken } from "@/lib/auth";
+import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 10 login attempts per 60s per IP (prevent brute force)
+    const limit = rateLimit(request, RATE_LIMITS.auth);
+    if (!limit.success) {
+      return NextResponse.json(
+        { error: "Demasiados intentos. Espera unos segundos antes de intentar de nuevo." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(limit.retryAfter) },
+        }
+      );
+    }
+
     const body = await request.json();
     const { password } = body;
 
