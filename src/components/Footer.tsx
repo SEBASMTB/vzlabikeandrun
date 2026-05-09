@@ -30,9 +30,9 @@ export function Footer() {
   const isHomePage = pathname === "/";
 
   const handleLinkClick = (href: string, anchor?: string, external?: boolean) => {
-    // External link
+    // External link: navigate in same tab so browser back button works
     if (external) {
-      window.open(href, "_blank", "noopener,noreferrer");
+      window.location.href = href;
       return;
     }
 
@@ -100,8 +100,8 @@ export function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.anchor || link.href}
-                    target={link.external ? "_blank" : undefined}
-                    rel={link.external ? "noopener noreferrer" : undefined}
+                    target={undefined}
+                    rel={undefined}
                     onClick={(e) => {
                       e.preventDefault();
                       handleLinkClick(link.href, link.anchor, link.external);
@@ -125,8 +125,8 @@ export function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.anchor || link.href}
-                    target={link.external ? "_blank" : undefined}
-                    rel={link.external ? "noopener noreferrer" : undefined}
+                    target={undefined}
+                    rel={undefined}
                     onClick={(e) => {
                       e.preventDefault();
                       handleLinkClick(link.href, link.anchor, link.external);

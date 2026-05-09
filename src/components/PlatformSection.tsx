@@ -188,7 +188,7 @@ export function PlatformSection() {
           <Button
             size="lg"
             className="gradient-primary text-white border-0 text-base px-8 h-12"
-            onClick={() => window.open(RESULTS_URL, "_blank", "noopener,noreferrer")}
+            onClick={() => { window.location.href = RESULTS_URL; }}
           >
             Ver Plataforma de Resultados
             <ArrowRight className="size-5" />

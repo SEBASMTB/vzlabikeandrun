@@ -15,7 +15,7 @@ const navLinks = [
   { label: "Servicios", href: "/", anchor: "#servicios" },
   { label: "Eventos", href: "/", anchor: "#eventos" },
   { label: "Tienda", href: "/tienda" },
-  { label: "Resultados", href: RESULTS_URL, external: true },
+  { label: "Resultados", href: RESULTS_URL, external: true, sameTab: true },
   { label: "Contacto", href: "/", anchor: "#contacto" },
 ];
 
@@ -38,7 +38,8 @@ export function Header() {
 
     // External link
     if (external) {
-      window.open(href, "_blank", "noopener,noreferrer");
+      // sameTab: navigate in current tab so browser back button works
+      window.location.href = href;
       return;
     }
 
@@ -115,8 +116,8 @@ export function Header() {
                       e.preventDefault();
                       handleNavClick(link.href, link.anchor, external);
                     }}
-                    target={external ? "_blank" : undefined}
-                    rel={external ? "noopener noreferrer" : undefined}
+                    target={undefined}
+                    rel={undefined}
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer",
                       active
@@ -196,15 +197,13 @@ export function Header() {
                         e.preventDefault();
                         handleNavClick(link.href, link.anchor, external);
                       }}
-                      target={external ? "_blank" : undefined}
-                      rel={external ? "noopener noreferrer" : undefined}
+                      target={undefined}
+                      rel={undefined}
                       className={cn(
                         "px-4 py-3 font-medium rounded-md transition-colors cursor-pointer",
                         active
                           ? "text-red-600 bg-red-50"
-                          : external
-                            ? "text-blue-600 hover:bg-blue-50 hover:text-blue-700"
-                            : "text-foreground hover:bg-red-50 hover:text-red-600"
+                          : "text-foreground hover:bg-red-50 hover:text-red-600"
                       )}
                     >
                       {link.label}
