@@ -270,39 +270,50 @@ CREATE TABLE IF NOT EXISTS "ProductOrder" (
 );
 `;
 
+let initPromise: Promise<void> | null = null;
+
 async function initAndSeed(prisma: PrismaClient) {
   if (globalForPrisma.dbInitialized) return;
-  try {
-    // Create tables if they don't exist
-    console.log("[DB] Verificando/creando tablas...");
-    const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(s => s.length > 0);
-    for (const sql of statements) {
-      await prisma.$executeRawUnsafe(sql);
-    }
-    console.log("[DB] Tablas verificadas.");
+  
+  // If init is already in progress, wait for it
+  if (initPromise) return initPromise;
 
-    // Seed events if empty
-    const count = await prisma.event.count();
-    if (count === 0) {
-      console.log("[DB] Base de datos vacía, sembrando eventos iniciales...");
-      for (const event of SEED_EVENTS) {
-        await prisma.event.create({
-          data: {
-            ...event,
-            createdAt: new Date("2026-05-07T00:16:23.772Z"),
-            updatedAt: new Date("2026-05-07T00:16:23.772Z"),
-          },
-        });
+  initPromise = (async () => {
+    try {
+      // Create tables if they don't exist
+      console.log("[DB] Verificando/creando tablas...");
+      const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(s => s.length > 0);
+      for (const sql of statements) {
+        await prisma.$executeRawUnsafe(sql);
       }
-      console.log(`[DB] ${SEED_EVENTS.length} eventos sembrados exitosamente.`);
-    }
+      console.log("[DB] Tablas verificadas.");
 
-    globalForPrisma.dbInitialized = true;
-    globalForPrisma.dbSeeded = true;
-  } catch (err) {
-    console.error("[DB] Error al inicializar base de datos:", err);
-    globalForPrisma.dbInitialized = false;
-  }
+      // Seed events if empty
+      const count = await prisma.event.count();
+      if (count === 0) {
+        console.log("[DB] Base de datos vacía, sembrando eventos iniciales...");
+        for (const event of SEED_EVENTS) {
+          await prisma.event.create({
+            data: {
+              ...event,
+              createdAt: new Date("2026-05-07T00:16:23.772Z"),
+              updatedAt: new Date("2026-05-07T00:16:23.772Z"),
+            },
+          });
+        }
+        console.log(`[DB] ${SEED_EVENTS.length} eventos sembrados exitosamente.`);
+      }
+
+      globalForPrisma.dbInitialized = true;
+      globalForPrisma.dbSeeded = true;
+    } catch (err) {
+      console.error("[DB] Error al inicializar base de datos:", err);
+      globalForPrisma.dbInitialized = false;
+      initPromise = null; // Allow retry on error
+    }
+  })();
+
+  return initPromise;
 }
 
 function createPrismaClient() {
@@ -336,13 +347,35 @@ function createPrismaClient() {
   return new PrismaClient()
 }
 
-export const db =
+const _prismaClient =
   globalForPrisma.prisma ??
   createPrismaClient()
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = _prismaClient
+
+// Proxy that ensures DB is initialized before every query in production
+export const db = new Proxy(_prismaClient, {
+  get(target, prop) {
+    if (prop === 'then' || prop === 'toJSON' || typeof prop === 'symbol') {
+      return Reflect.get(target, prop);
+    }
+    const value = (target as any)[prop];
+    if (typeof value !== 'function') return value;
+    // In production, ensure DB is initialized before any Prisma operation
+    if (process.env.NODE_ENV === 'production') {
+      return function(this: any, ...args: any[]) {
+        const self = this === db ? target : this;
+        if (!globalForPrisma.dbInitialized) {
+          return initAndSeed(target).then(() => value.apply(self, args));
+        }
+        return value.apply(self, args);
+      };
+    }
+    return value.bind(target);
+  }
+});
 
 // Auto-init in production (Vercel) - create tables and seed if needed
 if (process.env.NODE_ENV === 'production') {
-  initAndSeed(db).catch(console.error);
+  initAndSeed(_prismaClient).catch(console.error);
 }
