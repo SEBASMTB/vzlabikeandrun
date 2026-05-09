@@ -10,6 +10,13 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "2mb",
     },
+    // Optimize package imports to reduce bundle size
+    optimizePackageImports: [
+      "lucide-react",
+      "framer-motion",
+      "date-fns",
+      "recharts",
+    ],
   },
   async headers() {
     return [
@@ -67,22 +74,23 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      // Public API: short cache (10s) to reduce load during traffic spikes
+      // Public events API: serve stale while revalidating (30s edge cache)
       {
         source: "/api/events",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, s-maxage=10, stale-while-revalidate=30",
+            value: "public, s-maxage=30, stale-while-revalidate=60",
           },
         ],
       },
+      // Public products API
       {
         source: "/api/products",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, s-maxage=10, stale-while-revalidate=30",
+            value: "public, s-maxage=30, stale-while-revalidate=60",
           },
         ],
       },
@@ -96,7 +104,7 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      // Static assets: long cache (1 year with content hash)
+      // Static assets: immutable (content-hashed by Next.js)
       {
         source: "/_next/static/:path*",
         headers: [
@@ -106,13 +114,13 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      // Event images: medium cache (1 hour)
+      // Public images: long cache
       {
-        source: "/events/:path*",
+        source: "/(.*)\\.(jpg|jpeg|png|gif|svg|ico|webp|avif)",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=3600, stale-while-revalidate=86400",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
           },
         ],
       },

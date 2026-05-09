@@ -1,18 +1,46 @@
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { ensureDbInitialized } from "@/lib/db-init";
+
+// ── Simple in-memory cache for public GET /api/events ─────────────────────
+// Reduces Turso queries dramatically during traffic spikes.
+// Cache invalidates on any POST (admin creates event).
+let eventsCache: { data: string; timestamp: number } | null = null;
+const CACHE_TTL = 15_000; // 15 seconds
 
 export async function GET() {
   try {
-    await ensureDbInitialized();
+    // Return cached response if still fresh
+    const now = Date.now();
+    if (eventsCache && now - eventsCache.timestamp < CACHE_TTL) {
+      return new NextResponse(eventsCache.data, {
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30",
+          "X-Cache": "HIT",
+        },
+      });
+    }
+
     const events = await db.event.findMany({
       orderBy: { date: "asc" },
       include: {
         _count: { select: { registrations: true } },
       },
     });
-    return NextResponse.json(events);
+
+    const data = JSON.stringify(events);
+
+    // Store in cache
+    eventsCache = { data, timestamp: now };
+
+    return new NextResponse(data, {
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30",
+        "X-Cache": "MISS",
+      },
+    });
   } catch (err) {
     console.error("[API /events] Error:", err);
     return NextResponse.json(
@@ -70,6 +98,9 @@ export async function POST(request: NextRequest) {
         hasShirt: hasShirt !== false,
       },
     });
+
+    // Invalidate cache when new event is created
+    eventsCache = null;
 
     return NextResponse.json(event, { status: 201 });
   } catch (err) {

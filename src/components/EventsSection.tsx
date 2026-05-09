@@ -13,8 +13,18 @@ import {
 } from "@/components/ui/dialog";
 import { SectionHeading } from "./SectionHeading";
 import { EventCard, type EventCardProps } from "./EventCard";
-import { RegistrationDialog } from "./RegistrationDialog";
-import { GroupRegistrationDialog } from "./GroupRegistrationDialog";
+import dynamic from "next/dynamic";
+
+// Lazy load heavy registration dialogs — only loaded when user clicks "Inscribirse"
+const RegistrationDialog = dynamic(
+  () => import("./RegistrationDialog").then((mod) => ({ default: mod.RegistrationDialog })),
+  { loading: () => <div className="p-8 text-center text-muted-foreground">Cargando formulario...</div>, ssr: false }
+);
+
+const GroupRegistrationDialog = dynamic(
+  () => import("./GroupRegistrationDialog").then((mod) => ({ default: mod.GroupRegistrationDialog })),
+  { loading: () => <div className="p-8 text-center text-muted-foreground">Cargando formulario grupal...</div>, ssr: false }
+);
 
 type RegistrationType = "individual" | "group" | null;
 
@@ -210,7 +220,7 @@ export function EventsSection() {
         </DialogContent>
       </Dialog>
 
-      {/* Individual Registration Dialog */}
+      {/* Individual Registration Dialog (lazy loaded) */}
       {registrationType === "individual" && (
         <RegistrationDialog
           event={selectedEvent}
@@ -219,7 +229,7 @@ export function EventsSection() {
         />
       )}
 
-      {/* Group Registration Dialog */}
+      {/* Group Registration Dialog (lazy loaded) */}
       {registrationType === "group" && (
         <GroupRegistrationDialog
           event={selectedEvent}

@@ -4,7 +4,6 @@ import { PrismaLibSQL } from '@prisma/adapter-libsql'
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
   dbSeeded: boolean | undefined
-  dbInitialized: boolean | undefined
 }
 
 // ── Seed data (8 events, NEVER modify) ──────────────────────────────────────
@@ -421,95 +420,19 @@ const EXPECTED_COLUMNS: Record<string, Record<string, string>> = {
   },
 };
 
-// ── Retry helper with exponential backoff ──────────────────────────────────
-
-const RETRY_DELAYS = [1000, 2000, 4000]; // 1s, 2s, 4s
-
-async function safeRawQuery<T = unknown>(
-  prisma: PrismaClient,
-  operation: 'query' | 'execute',
-  sql: string,
-  maxRetries: number = 3,
-): Promise<T> {
-  let lastError: unknown;
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      if (operation === 'query') {
-        return (await prisma.$queryRawUnsafe(sql)) as T;
-      } else {
-        return (await prisma.$executeRawUnsafe(sql)) as T;
-      }
-    } catch (err) {
-      lastError = err;
-      if (attempt < maxRetries) {
-        const delay = RETRY_DELAYS[attempt] ?? 4000;
-        console.warn(
-          `[DB] Query failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms…`,
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-    }
-  }
-  throw lastError;
-}
-
-// ── Safe column migration (ALTER TABLE ADD COLUMN for missing columns) ─────
-
-async function migrateMissingColumns(prisma: PrismaClient): Promise<void> {
-  for (const [table, columns] of Object.entries(EXPECTED_COLUMNS)) {
-    try {
-      const existing = (await safeRawQuery<Array<{ name: string }>>(
-        prisma,
-        'query',
-        `PRAGMA table_info("${table}")`,
-      )) as Array<{ name: string }>;
-
-      const existingNames = new Set(existing.map((c) => c.name));
-
-      for (const [col, typeDef] of Object.entries(columns)) {
-        if (!existingNames.has(col)) {
-          try {
-            await safeRawQuery(
-              prisma,
-              'execute',
-              `ALTER TABLE "${table}" ADD COLUMN "${col}" ${typeDef}`,
-            );
-            console.log(`[DB] Migration: added column "${col}" to "${table}"`);
-          } catch (alterErr) {
-            // SQLite ALTER TABLE ADD COLUMN has limitations (e.g. can't add
-            // PRIMARY KEY or UNIQUE). Log and continue – don't crash.
-            console.warn(
-              `[DB] Could not add column "${col}" to "${table}":`,
-              alterErr,
-            );
-          }
-        }
-      }
-    } catch (pragmaErr) {
-      // Table might not exist yet – that's fine, CREATE TABLE IF NOT EXISTS
-      // will handle it.
-      console.warn(
-        `[DB] Could not read schema for "${table}" (table may not exist yet):`,
-        pragmaErr,
-      );
-    }
-  }
-}
-
-// ── Initialization ─────────────────────────────────────────────────────────
+// ── Initialization (single source of truth, runs once) ─────────────────────
 
 let initPromise: Promise<void> | null = null;
 
 async function initAndSeed(prisma: PrismaClient) {
-  if (globalForPrisma.dbInitialized) return;
+  // If already initialized, skip
+  if (globalForPrisma.dbSeeded) return;
 
   // If init is already in progress, wait for it
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
     try {
-      console.log("[DB] Verificando/creando tablas...");
-
       // Step 1: CREATE TABLE IF NOT EXISTS (safe – no-op when table exists)
       const statements = CREATE_TABLES_SQL
         .split(';')
@@ -517,17 +440,35 @@ async function initAndSeed(prisma: PrismaClient) {
         .filter((s) => s.length > 0);
 
       for (const sql of statements) {
-        await safeRawQuery(prisma, 'execute', sql);
+        await prisma.$executeRawUnsafe(sql);
       }
-      console.log("[DB] Tablas verificadas (CREATE IF NOT EXISTS OK).");
 
-      // Step 2: Migrate missing columns (safe – ADD COLUMN is a no-op if exists)
-      await migrateMissingColumns(prisma);
+      // Step 2: Migrate missing columns
+      for (const [table, columns] of Object.entries(EXPECTED_COLUMNS)) {
+        try {
+          const existing = (await prisma.$queryRawUnsafe<Array<{ name: string }>>(
+            `PRAGMA table_info("${table}")`
+          )) as Array<{ name: string }>;
+          const existingNames = new Set(existing.map((c) => c.name));
+          for (const [col, typeDef] of Object.entries(columns)) {
+            if (!existingNames.has(col)) {
+              try {
+                await prisma.$executeRawUnsafe(
+                  `ALTER TABLE "${table}" ADD COLUMN "${col}" ${typeDef}`
+                );
+              } catch {
+                // SQLite ALTER TABLE limitations – continue
+              }
+            }
+          }
+        } catch {
+          // Table might not exist yet
+        }
+      }
 
       // Step 3: Seed events ONLY if the table is completely empty
       const count = await prisma.event.count();
       if (count === 0) {
-        console.log("[DB] Base de datos vacía, sembrando eventos iniciales...");
         for (const event of SEED_EVENTS) {
           await prisma.event.create({
             data: {
@@ -537,14 +478,12 @@ async function initAndSeed(prisma: PrismaClient) {
             },
           });
         }
-        console.log(`[DB] ${SEED_EVENTS.length} eventos sembrados exitosamente.`);
       }
 
-      globalForPrisma.dbInitialized = true;
       globalForPrisma.dbSeeded = true;
     } catch (err) {
-      console.error("[DB] Error al inicializar base de datos:", err);
-      globalForPrisma.dbInitialized = false;
+      console.error("[DB] Error al inicializar:", err);
+      globalForPrisma.dbSeeded = false;
       initPromise = null; // Allow retry on error
     }
   })();
@@ -561,60 +500,47 @@ function createPrismaClient(): PrismaClient {
 
   // 1. Turso remote database (PREFERRED in production)
   if (tursoUrl.startsWith('libsql://')) {
-    console.log("[DB] Usando Turso (base de datos remota)")
     const adapter = new PrismaLibSQL({
       url: tursoUrl,
       authToken: tursoToken || undefined,
       concurrency: 10,
     })
-    return new PrismaClient({
-      adapter,
-    })
+    return new PrismaClient({ adapter })
   }
 
   // 2. DATABASE_URL – libsql
   if (dbUrl.startsWith('libsql://')) {
-    console.log("[DB] Usando DATABASE_URL (libsql)")
     const adapter = new PrismaLibSQL({
       url: dbUrl,
       authToken: tursoToken || undefined,
       concurrency: 10,
     })
-    return new PrismaClient({
-      adapter,
-    })
+    return new PrismaClient({ adapter })
   }
 
   // 3. DATABASE_URL – local file
   if (dbUrl.startsWith('file:')) {
-    console.log(`[DB] Usando SQLite local: ${dbUrl}`)
     const adapter = new PrismaLibSQL({
       url: dbUrl,
       concurrency: 10,
     })
-    return new PrismaClient({
-      adapter,
-    })
+    return new PrismaClient({ adapter })
   }
 
   // 4. Last resort: /tmp in production
   if (process.env.NODE_ENV === 'production') {
-    console.log("[DB] WARNING: Usando /tmp (datos temporales, se pierden al reiniciar)")
     const adapter = new PrismaLibSQL({
       url: 'file:/tmp/vzlabike.db',
       concurrency: 10,
     })
-    return new PrismaClient({
-      adapter,
-    })
+    return new PrismaClient({ adapter })
   }
 
   // Fallback: direct PrismaClient (local dev)
-  console.log("[DB] Usando PrismaClient directo")
   return new PrismaClient()
 }
 
-// ── Singleton & Proxy ──────────────────────────────────────────────────────
+// ── Singleton ──────────────────────────────────────────────────────────────
 
 const _prismaClient =
   globalForPrisma.prisma ??
@@ -622,7 +548,24 @@ const _prismaClient =
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = _prismaClient
 
-// Proxy that ensures DB is initialized before every query in production
+// Lightweight ready check — ensures DB is initialized once before first query
+// No Proxy overhead on every operation
+let dbReadyPromise: Promise<void> | null = null;
+
+export async function getDb(): Promise<PrismaClient> {
+  // If already seeded, return immediately (zero overhead)
+  if (globalForPrisma.dbSeeded) return _prismaClient;
+
+  // If init is already in progress, wait for it
+  if (!dbReadyPromise) {
+    dbReadyPromise = initAndSeed(_prismaClient);
+  }
+  await dbReadyPromise;
+  return _prismaClient;
+}
+
+// Direct export for backward compatibility (lazy init on first use)
+// This avoids the Proxy overhead while keeping the same API
 export const db = new Proxy(_prismaClient, {
   get(target, prop) {
     if (prop === 'then' || prop === 'toJSON' || typeof prop === 'symbol') {
@@ -630,12 +573,16 @@ export const db = new Proxy(_prismaClient, {
     }
     const value = (target as any)[prop];
     if (typeof value !== 'function') return value;
+
     // In production, ensure DB is initialized before any Prisma operation
     if (process.env.NODE_ENV === 'production') {
       return function(this: any, ...args: any[]) {
         const self = this === db ? target : this;
-        if (!globalForPrisma.dbInitialized) {
-          return initAndSeed(target).then(() => value.apply(self, args));
+        if (!globalForPrisma.dbSeeded) {
+          if (!dbReadyPromise) {
+            dbReadyPromise = initAndSeed(target);
+          }
+          return dbReadyPromise.then(() => value.apply(self, args));
         }
         return value.apply(self, args);
       };
@@ -644,7 +591,7 @@ export const db = new Proxy(_prismaClient, {
   }
 });
 
-// Auto-init in production (Vercel) - create tables and seed if needed
+// Auto-init in production
 if (process.env.NODE_ENV === 'production') {
-  initAndSeed(_prismaClient).catch(console.error);
+  dbReadyPromise = initAndSeed(_prismaClient).catch(console.error);
 }
