@@ -16,7 +16,7 @@ export async function GET() {
   } catch (err) {
     console.error("[API /events] Error:", err);
     return NextResponse.json(
-      { error: "Error al obtener eventos" },
+      { error: "Error al obtener eventos", detail: String(err) },
       { status: 500 }
     );
   }

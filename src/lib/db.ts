@@ -334,8 +334,23 @@ async function initAndSeed(prisma: PrismaClient) {
 
   initPromise = (async () => {
     try {
-      // Create tables if they don't exist
+      // Create tables with migration handling
       console.log("[DB] Verificando/creando tablas...");
+      try {
+        // Check if Event table has correct schema
+        const cols = await prisma.$queryRawUnsafe(`PRAGMA table_info("Event")`);
+        const colInfo = cols as Array<{name: string; type: string}>;
+        const catIntervalCol = colInfo.find(c => c.name === 'categoryInterval');
+        
+        if (catIntervalCol && catIntervalCol.type.toUpperCase() !== 'TEXT') {
+          console.log(`[DB] Schema mismatch: categoryInterval is ${catIntervalCol.type}, recreating...`);
+          await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "ProductOrder"`);
+          await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Product"`);
+          await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Registration"`);
+          await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Event"`);
+        }
+      } catch {}
+      
       const statements = CREATE_TABLES_SQL.split(';').map(s => s.trim()).filter(s => s.length > 0);
       for (const sql of statements) {
         await prisma.$executeRawUnsafe(sql);
