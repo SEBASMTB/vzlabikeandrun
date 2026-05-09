@@ -371,33 +371,46 @@ async function initAndSeed(prisma: PrismaClient) {
 }
 
 function createPrismaClient() {
-  // Support both DATABASE_URL and TURSO_DATABASE_URL
-  let dbUrl = process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL || ''
-  const dbToken = process.env.TURSO_AUTH_TOKEN || ''
+  // Priority: 1) Turso (libsql://), 2) DATABASE_URL, 3) /tmp fallback in prod
+  const tursoUrl = process.env.TURSO_DATABASE_URL || ''
+  const tursoToken = process.env.TURSO_AUTH_TOKEN || ''
+  const dbUrl = process.env.DATABASE_URL || ''
 
-  if (dbUrl.startsWith('libsql://')) {
-    // Remote Turso database - use LibSQL adapter
+  // 1. Turso remote database (PREFERRED in production)
+  if (tursoUrl.startsWith('libsql://')) {
+    console.log("[DB] Usando Turso (base de datos remota)")
     const adapter = new PrismaLibSQL({
-      url: dbUrl,
-      authToken: dbToken || undefined,
+      url: tursoUrl,
+      authToken: tursoToken || undefined,
     })
     return new PrismaClient({ adapter })
   }
 
-  // In production (Vercel) with no valid DATABASE_URL, use /tmp
-  if (process.env.NODE_ENV === 'production' && !dbUrl.startsWith('file:')) {
-    dbUrl = 'file:/tmp/vzlabike.db'
+  // 2. DATABASE_URL (local dev or file-based)
+  if (dbUrl.startsWith('file:')) {
+    console.log(`[DB] Usando SQLite local: ${dbUrl}`)
     const adapter = new PrismaLibSQL({ url: dbUrl })
     return new PrismaClient({ adapter })
   }
 
-  if (dbUrl.startsWith('file:')) {
-    // Local SQLite database - use LibSQL adapter with file URL
-    const adapter = new PrismaLibSQL({ url: dbUrl })
+  if (dbUrl.startsWith('libsql://')) {
+    console.log("[DB] Usando DATABASE_URL (libsql)")
+    const adapter = new PrismaLibSQL({
+      url: dbUrl,
+      authToken: tursoToken || undefined,
+    })
+    return new PrismaClient({ adapter })
+  }
+
+  // 3. Last resort: /tmp in production
+  if (process.env.NODE_ENV === 'production') {
+    console.log("[DB] WARNING: Usando /tmp (datos temporales, se pierden al reiniciar)")
+    const adapter = new PrismaLibSQL({ url: 'file:/tmp/vzlabike.db' })
     return new PrismaClient({ adapter })
   }
 
   // Fallback: direct PrismaClient (local dev)
+  console.log("[DB] Usando PrismaClient directo")
   return new PrismaClient()
 }
 

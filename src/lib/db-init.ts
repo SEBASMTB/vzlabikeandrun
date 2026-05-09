@@ -331,17 +331,23 @@ export async function ensureDbInitialized(): Promise<void> {
   initPromise = (async () => {
     try {
       // Create a direct client for init (avoids circular deps with db.ts)
-      let dbUrl = process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL || '';
+      // Priority: Turso > DATABASE_URL > /tmp
+      const tursoUrl = process.env.TURSO_DATABASE_URL || '';
+      const tursoToken = process.env.TURSO_AUTH_TOKEN || '';
+      const dbUrl = process.env.DATABASE_URL || '';
       let prisma: PrismaClient;
 
-      if (dbUrl.startsWith('libsql://')) {
-        const adapter = new PrismaLibSQL({ url: dbUrl, authToken: process.env.TURSO_AUTH_TOKEN || undefined });
+      if (tursoUrl.startsWith('libsql://')) {
+        const adapter = new PrismaLibSQL({ url: tursoUrl, authToken: tursoToken || undefined });
         prisma = new PrismaClient({ adapter });
-      } else if (process.env.NODE_ENV === 'production' && !dbUrl.startsWith('file:')) {
-        const adapter = new PrismaLibSQL({ url: 'file:/tmp/vzlabike.db' });
+      } else if (dbUrl.startsWith('libsql://')) {
+        const adapter = new PrismaLibSQL({ url: dbUrl, authToken: tursoToken || undefined });
         prisma = new PrismaClient({ adapter });
       } else if (dbUrl.startsWith('file:')) {
         const adapter = new PrismaLibSQL({ url: dbUrl });
+        prisma = new PrismaClient({ adapter });
+      } else if (process.env.NODE_ENV === 'production') {
+        const adapter = new PrismaLibSQL({ url: 'file:/tmp/vzlabike.db' });
         prisma = new PrismaClient({ adapter });
       } else {
         prisma = new PrismaClient();
