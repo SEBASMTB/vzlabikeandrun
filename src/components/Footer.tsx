@@ -1,35 +1,54 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import { MapPin, Phone, Mail, ArrowUp } from "lucide-react";
 
 const RESULTS_URL = "https://vbr-results-portal.vercel.app";
 
 const quickLinks = [
-  { label: "Inicio", href: "#inicio" },
-  { label: "Nosotros", href: "#nosotros" },
-  { label: "Servicios", href: "#servicios" },
-  { label: "Eventos", href: "#eventos" },
+  { label: "Inicio", href: "/", anchor: "#inicio" },
+  { label: "Nosotros", href: "/", anchor: "#nosotros" },
+  { label: "Servicios", href: "/", anchor: "#servicios" },
+  { label: "Eventos", href: "/", anchor: "#eventos" },
+  { label: "Tienda", href: "/tienda" },
   { label: "Resultados", href: RESULTS_URL, external: true },
-  { label: "Contacto", href: "#contacto" },
+  { label: "Contacto", href: "/", anchor: "#contacto" },
 ];
 
 const serviceLinks = [
-  { label: "Cronometraje", href: "#servicios" },
-  { label: "Inscripciones", href: "#eventos" },
+  { label: "Cronometraje", href: "/", anchor: "#servicios" },
+  { label: "Inscripciones", href: "/", anchor: "#eventos" },
   { label: "Resultados en Vivo", href: RESULTS_URL, external: true },
   { label: "VBRWorks®", href: RESULTS_URL, external: true },
-  { label: "Fotografía", href: "#servicios" },
-  { label: "Timing Tags", href: "#servicios" },
+  { label: "Fotografía", href: "/", anchor: "#servicios" },
+  { label: "Timing Tags", href: "/", anchor: "#servicios" },
 ];
 
 export function Footer() {
-  const handleLinkClick = (href: string, external?: boolean) => {
+  const pathname = usePathname();
+  const router = useRouter();
+  const isHomePage = pathname === "/";
+
+  const handleLinkClick = (href: string, anchor?: string, external?: boolean) => {
+    // External link
     if (external) {
       window.open(href, "_blank", "noopener,noreferrer");
       return;
     }
-    const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+
+    // Direct page route (e.g., /tienda)
+    if (!anchor) {
+      router.push(href);
+      return;
+    }
+
+    // Anchor link
+    if (isHomePage) {
+      const el = document.querySelector(anchor);
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    } else {
+      router.push(href + anchor);
+    }
   };
 
   const scrollToTop = () => {
@@ -80,14 +99,14 @@ export function Footer() {
               {quickLinks.map((link) => (
                 <li key={link.label}>
                   <a
-                    href={link.href}
-                    target={(link as any).external ? "_blank" : undefined}
-                    rel={(link as any).external ? "noopener noreferrer" : undefined}
+                    href={link.anchor || link.href}
+                    target={link.external ? "_blank" : undefined}
+                    rel={link.external ? "noopener noreferrer" : undefined}
                     onClick={(e) => {
                       e.preventDefault();
-                      handleLinkClick(link.href, (link as any).external);
+                      handleLinkClick(link.href, link.anchor, link.external);
                     }}
-                    className="text-white/60 hover:text-red-400 text-sm transition-colors"
+                    className="text-white/60 hover:text-red-400 text-sm transition-colors cursor-pointer"
                   >
                     {link.label}
                   </a>
@@ -105,14 +124,14 @@ export function Footer() {
               {serviceLinks.map((link) => (
                 <li key={link.label}>
                   <a
-                    href={link.href}
-                    target={(link as any).external ? "_blank" : undefined}
-                    rel={(link as any).external ? "noopener noreferrer" : undefined}
+                    href={link.anchor || link.href}
+                    target={link.external ? "_blank" : undefined}
+                    rel={link.external ? "noopener noreferrer" : undefined}
                     onClick={(e) => {
                       e.preventDefault();
-                      handleLinkClick(link.href, (link as any).external);
+                      handleLinkClick(link.href, link.anchor, link.external);
                     }}
-                    className="text-white/60 hover:text-red-400 text-sm transition-colors"
+                    className="text-white/60 hover:text-red-400 text-sm transition-colors cursor-pointer"
                   >
                     {link.label}
                   </a>
