@@ -53,12 +53,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  SPORT_CATEGORIES,
   getCategoriesByGender,
   getCategoriesForSport,
   parseEventCategories,
   serializeEventCategories,
+  getCategoryPresets,
   type CategoryOption,
+  type CategoryPreset,
 } from "@/lib/categories";
 import { cn } from "@/lib/utils";
 
@@ -89,6 +90,8 @@ interface Event {
   sponsors: string;
   categories: string;
   ageCalcMode: string;
+  categoryInterval: string;
+  hasShirt: boolean;
   _count?: { registrations: number };
 }
 
@@ -115,6 +118,7 @@ interface FormData {
   sponsors: string;
   categories: string;
   ageCalcMode: string;
+  categoryInterval: string;
   hasShirt: boolean;
 }
 
@@ -141,6 +145,7 @@ const emptyForm: FormData = {
   sponsors: "",
   categories: "",
   ageCalcMode: "calendar_year",
+  categoryInterval: "10",
   hasShirt: true,
 };
 
@@ -193,8 +198,8 @@ function formatDate(dateStr: string): string {
 }
 
 // Parsea formData.categories (JSON) a CategoryOption[]
-function parseFormDataCategories(catsStr: string): CategoryOption[] {
-  return parseEventCategories(catsStr, "running");
+function parseFormDataCategories(catsStr: string, sportType: string = "running"): CategoryOption[] {
+  return parseEventCategories(catsStr, sportType);
 }
 
 // ============================================================
@@ -268,6 +273,7 @@ export default function AdminEventosPage() {
       sponsors: event.sponsors || "",
       categories: event.categories || "",
       ageCalcMode: event.ageCalcMode || "calendar_year",
+      categoryInterval: (event as any).categoryInterval || "10",
       hasShirt: event.hasShirt !== undefined ? event.hasShirt : true,
     });
     setFormError("");
@@ -292,13 +298,42 @@ export default function AdminEventosPage() {
       ...prev,
       sportType,
       category: sportType,
-      categories: "", // Reset categories when sport changes
+      categoryInterval: prev.categoryInterval || "10",
+    }));
+    // Auto-load default preset categories for this sport type
+    const presets = getCategoryPresets(sportType);
+    if (presets.length > 0) {
+      // Use the first preset (event-specific if available, otherwise general)
+      const defaultPreset = presets[0];
+      setFormData((prev) => ({
+        ...prev,
+        categories: serializeEventCategories(defaultPreset.categories),
+      }));
+    }
+  };
+
+  const handlePresetChange = (presetId: string) => {
+    const presets = getCategoryPresets(formData.sportType);
+    const preset = presets.find(p => p.id === presetId);
+    if (preset) {
+      setFormData((prev) => ({
+        ...prev,
+        categories: serializeEventCategories(preset.categories),
+      }));
+    }
+  };
+
+  const handleIntervalChange = (interval: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      categoryInterval: interval,
+      categories: "", // Reset categories when interval changes
     }));
   };
 
   const handleCategoryToggle = (cat: CategoryOption) => {
     setFormData((prev) => {
-      const selected = parseFormDataCategories(prev.categories);
+      const selected = parseFormDataCategories(prev.categories, formData.sportType);
       const exists = selected.find((c) => c.value === cat.value);
       const updated = exists
         ? selected.filter((c) => c.value !== cat.value)
@@ -308,16 +343,18 @@ export default function AdminEventosPage() {
   };
 
   const handleSelectAllGender = (gender: "male" | "female" | "open") => {
+    const interval = (formData.categoryInterval as "5" | "10") || "10";
     const grouped = getCategoriesByGender(formData.sportType);
+    const sportCats = getCategoriesForSport(formData.sportType, interval);
     const genderCats = gender === "male"
-      ? grouped.male
+      ? sportCats.filter(c => c.gender === "M")
       : gender === "female"
-        ? grouped.female
-        : grouped.open;
+        ? sportCats.filter(c => c.gender === "F")
+        : sportCats.filter(c => !c.gender);
     const values = genderCats.map((c) => c.value);
 
     setFormData((prev) => {
-      const selected = parseFormDataCategories(prev.categories);
+      const selected = parseFormDataCategories(prev.categories, formData.sportType);
       const allSelected = genderCats.every((c) =>
         selected.find((s) => s.value === c.value)
       );
@@ -348,7 +385,7 @@ export default function AdminEventosPage() {
       gender,
     };
     setFormData((prev) => {
-      const selected = parseFormDataCategories(prev.categories);
+      const selected = parseFormDataCategories(prev.categories, formData.sportType);
       const updated = [...selected, newCat];
       return { ...prev, categories: serializeEventCategories(updated) };
     });
@@ -360,33 +397,68 @@ export default function AdminEventosPage() {
 
   const handleRemoveCategory = (catValue: string) => {
     setFormData((prev) => {
-      const selected = parseFormDataCategories(prev.categories);
+      const selected = parseFormDataCategories(prev.categories, formData.sportType);
       const updated = selected.filter((c) => c.value !== catValue);
       return { ...prev, categories: serializeEventCategories(updated) };
     });
   };
 
-  // ---- Image Upload ----
+  // ---- Image Upload (with client-side compression) ----
+  const compressImage = (file: File, maxWidth: number, quality: number): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let w = img.width;
+          let h = img.height;
+
+          // Scale down if wider than maxWidth
+          if (w > maxWidth) {
+            h = Math.round((h * maxWidth) / w);
+            w = maxWidth;
+          }
+
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { reject(new Error("Canvas not supported")); return; }
+          ctx.drawImage(img, 0, 0, w, h);
+
+          const dataUrl = canvas.toDataURL("image/jpeg", quality);
+          resolve(dataUrl);
+        };
+        img.onerror = () => reject(new Error("Error al cargar la imagen"));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error("Error al leer el archivo"));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleImageUpload = async (file: File, type: "card" | "banner") => {
     if (type === "banner") setUploadingBanner(true);
     else setUploadingImage(true);
 
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("type", type);
-
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (res.ok) {
-        const data = await res.json();
-        if (type === "banner") {
-          setFormData((prev) => ({ ...prev, bannerImage: data.url }));
-        } else {
-          setFormData((prev) => ({ ...prev, imageUrl: data.url }));
-        }
+      // Check initial file size (max 5MB before compression)
+      if (file.size > 5 * 1024 * 1024) {
+        setFormError("La imagen es muy pesada (máximo 5MB). Reduce el tamaño antes de subir.");
+        return;
       }
-    } catch {
-      // Silently handle
+
+      // Compress: max 1200px for banner, 800px for card, JPEG quality 0.75
+      const maxWidth = type === "banner" ? 1200 : 800;
+      const dataUrl = await compressImage(file, maxWidth, 0.75);
+
+      if (type === "banner") {
+        setFormData((prev) => ({ ...prev, bannerImage: dataUrl }));
+      } else {
+        setFormData((prev) => ({ ...prev, imageUrl: dataUrl }));
+      }
+    } catch (err) {
+      setFormError("Error al procesar la imagen. Intenta con otra imagen o usa una URL directa.");
     } finally {
       setUploadingImage(false);
       setUploadingBanner(false);
@@ -396,8 +468,15 @@ export default function AdminEventosPage() {
   // ---- Submit ----
   const handleSubmit = async () => {
     setFormError("");
-    if (!formData.title || !formData.slug || !formData.date || !formData.location || !formData.distance) {
-      setFormError("Completa todos los campos obligatorios (Título, Fecha, Ubicación, Distancia)");
+
+    // Auto-generate slug from title if empty
+    let finalSlug = formData.slug;
+    if (!finalSlug && formData.title) {
+      finalSlug = generateSlug(formData.title);
+    }
+
+    if (!formData.title || !finalSlug || !formData.date || !formData.location || !formData.distance) {
+      setFormError("Completa todos los campos obligatorios (Título, Slug/URL, Fecha, Ubicación, Distancia)");
       return;
     }
 
@@ -405,6 +484,7 @@ export default function AdminEventosPage() {
     try {
       const payload = {
         ...formData,
+        slug: finalSlug,
         date: new Date(formData.date).toISOString(),
       };
 
@@ -459,9 +539,16 @@ export default function AdminEventosPage() {
   );
 
   // ---- Categories for current sport ----
-  const selectedCats = parseFormDataCategories(formData.categories);
+  const availablePresets = getCategoryPresets(formData.sportType);
+  const selectedCats = parseFormDataCategories(formData.categories, formData.sportType);
   const selectedCatValues = selectedCats.map((c) => c.value);
-  const groupedCats = getCategoriesByGender(formData.sportType);
+  const interval = (formData.categoryInterval as "5" | "10") || "10";
+  const sportCategories = getCategoriesForSport(formData.sportType, interval);
+  const groupedCats = {
+    male: sportCategories.filter(c => c.gender === "M"),
+    female: sportCategories.filter(c => c.gender === "F"),
+    open: sportCategories.filter(c => !c.gender),
+  };
 
   // ============================================================
   // Render
@@ -659,6 +746,19 @@ export default function AdminEventosPage() {
             </div>
 
             <div>
+              <Label>Intervalo de Categorías por Edad</Label>
+              <Select value={formData.categoryInterval} onValueChange={handleIntervalChange}>
+                <SelectTrigger className="mt-1 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">Cada 10 años (20-29, 30-39, 40-49...)</SelectItem>
+                  <SelectItem value="5">Cada 5 años (20-24, 25-29, 30-34...)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
               <Label htmlFor="maxParticipants">Máx. Participantes</Label>
               <Input id="maxParticipants" type="number" min={1} value={formData.maxParticipants} onChange={(e) => setFormData((p) => ({ ...p, maxParticipants: parseInt(e.target.value) || 500 }))} className="mt-1" />
             </div>
@@ -825,10 +925,32 @@ export default function AdminEventosPage() {
             {/* ---- CATEGORIES ---- */}
             <SectionTitle>Categorías del Evento</SectionTitle>
 
-            {/* Preset categories by gender */}
+            {/* Preset Selector */}
+            {availablePresets.length > 1 && (
+              <div className="sm:col-span-2">
+                <Label>Plantilla de Categorías</Label>
+                <Select onValueChange={handlePresetChange}>
+                  <SelectTrigger className="mt-1 w-full">
+                    <SelectValue placeholder="Selecciona una plantilla..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availablePresets.map((preset) => (
+                      <SelectItem key={preset.id} value={preset.id}>
+                        {preset.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Al cambiar la plantilla se reemplazan todas las categorías seleccionadas.
+                </p>
+              </div>
+            )}
+
+            {/* Preset categories info */}
             <div className="sm:col-span-2 text-xs text-muted-foreground">
               Deporte: <span className="font-semibold">{sportTypeLabels[formData.sportType] || formData.sportType}</span>
-              {" — "}{groupedCats.male.length + groupedCats.female.length + groupedCats.open.length} categorías predefinidas disponibles
+              {" — "}{selectedCats.length} categoría(s) seleccionada(s) de {groupedCats.male.length + groupedCats.female.length + groupedCats.open.length} disponibles
               <br />
               Haz clic en las categorías para activarlas, o agrega categorías personalizadas abajo.
             </div>
@@ -1162,7 +1284,7 @@ export default function AdminEventosPage() {
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={saving || !formData.title || !formData.slug || !formData.date}
+              disabled={saving || !formData.title || !formData.date || !formData.location || !formData.distance}
               className="gradient-primary text-white border-0 hover:opacity-90"
             >
               {saving ? (

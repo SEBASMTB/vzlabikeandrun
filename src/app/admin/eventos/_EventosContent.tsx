@@ -540,7 +540,7 @@ export default function AdminEventosPage() {
 
   // ---- Categories for current sport ----
   const availablePresets = getCategoryPresets(formData.sportType);
-  const selectedCats = parseFormDataCategories(formData.categories);
+  const selectedCats = parseFormDataCategories(formData.categories, formData.sportType);
   const selectedCatValues = selectedCats.map((c) => c.value);
   const interval = (formData.categoryInterval as "5" | "10") || "10";
   const sportCategories = getCategoriesForSport(formData.sportType, interval);
