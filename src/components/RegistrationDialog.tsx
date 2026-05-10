@@ -165,6 +165,7 @@ export function RegistrationDialog({
   const [autoCategory, setAutoCategory] = useState<string>("");
   const [autoAge, setAutoAge] = useState<number | null>(null);
   const [eligibleCategories, setEligibleCategories] = useState<Array<{ value: string; label: string }>>([]);
+  const [categoryMessage, setCategoryMessage] = useState<string>("");
   const [mtbProfile, setMTBProfile] = useState<"competitivo" | "recreativo" | "">("");
   const [registrationSuccess, setRegistrationSuccess] = useState<{bibNumber: number; payLabel: string} | null>(null);
   const { toast } = useToast();
@@ -204,38 +205,13 @@ export function RegistrationDialog({
       const sportType = event?.sportType || "running";
       const eventCats = parseEventCategories(event?.categories, sportType);
 
-      // MTB: use profile-based category filtering
+      // MTB: use new category logic (suggested + eligible)
       if (sportType === "mtb") {
         const mtbOpts = getMTBCategoryOptions(age, eventCats, gender);
-        if (mtbProfile === "competitivo") {
-          if (mtbOpts.competitivo.length > 0) {
-            const cat = mtbOpts.competitivo[0];
-            const categoryValue = `${cat.value} - ${cat.label}`;
-            setAutoCategory(categoryValue);
-            setEligibleCategories(mtbOpts.competitivo.map(c => ({ value: `${c.value} - ${c.label}`, label: c.label })));
-            raceForm.setValue("category", categoryValue);
-          } else {
-            setAutoCategory("");
-            setEligibleCategories([]);
-            raceForm.setValue("category", "");
-          }
-        } else if (mtbProfile === "recreativo") {
-          const recreativoCats = mtbOpts.recreativo;
-          setEligibleCategories(recreativoCats.map(c => ({ value: `${c.value} - ${c.label}`, label: c.label })));
-          if (recreativoCats.length > 0) {
-            const categoryValue = `${recreativoCats[0].value} - ${recreativoCats[0].label}`;
-            setAutoCategory(categoryValue);
-            raceForm.setValue("category", categoryValue);
-          } else {
-            setAutoCategory("");
-            raceForm.setValue("category", "");
-          }
-        } else {
-          // No profile selected yet
-          setAutoCategory("");
-          setEligibleCategories([]);
-          raceForm.setValue("category", "");
-        }
+        setAutoCategory(`${mtbOpts.suggested.value} - ${mtbOpts.suggested.label}`);
+        setCategoryMessage(mtbOpts.message);
+        setEligibleCategories(mtbOpts.eligible.map(c => ({ value: `${c.value} - ${c.label}`, label: c.label })));
+        raceForm.setValue("category", `${mtbOpts.suggested.value} - ${mtbOpts.suggested.label}`);
       } else {
         // Non-MTB: use the original logic
         const { suggested, eligible } = getEligibleCategories(age, eventCats, gender);
@@ -262,7 +238,6 @@ export function RegistrationDialog({
     event?.ageCalcMode,
     event?.sportType,
     event?.categories,
-    mtbProfile,
   ]);
 
   const handleIdNumberBlur = async () => {
@@ -323,15 +298,7 @@ export function RegistrationDialog({
         if (valid) setCurrentStep(1);
       });
     } else if (currentStep === 1) {
-      // For MTB, require profile selection
-      if (event?.sportType === "mtb" && !mtbProfile) {
-        toast({
-          title: "Selecciona tu modalidad",
-          description: "Debes elegir entre Competitivo o Recreativo para continuar.",
-          variant: "destructive",
-        });
-        return;
-      }
+      // For MTB, category is auto-assigned — just validate it's set
       raceForm.trigger().then((valid) => {
         if (valid) setCurrentStep(2);
       });
@@ -790,108 +757,30 @@ export function RegistrationDialog({
                     </div>
                   )}
 
-                  {/* MTB Profile Selector */}
-                  {event?.sportType === "mtb" && (
-                    <div className="space-y-2 mb-3">
-                      <Label className="text-sm font-semibold text-red-800">Modalidad</Label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setMTBProfile("competitivo")}
-                          className={`p-3 rounded-lg border-2 text-center transition-all ${
-                            mtbProfile === "competitivo"
-                              ? "border-red-500 bg-red-50 text-red-700"
-                              : "border-gray-200 hover:border-gray-300"
-                          }`}
-                        >
-                          <Trophy className="size-5 mx-auto mb-1" />
-                          <span className="text-sm font-bold">Competitivo</span>
-                          <p className="text-[10px] mt-1">Categoría UCI oficial</p>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setMTBProfile("recreativo")}
-                          className={`p-3 rounded-lg border-2 text-center transition-all ${
-                            mtbProfile === "recreativo"
-                              ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                              : "border-gray-200 hover:border-gray-300"
-                          }`}
-                        >
-                          <Heart className="size-5 mx-auto mb-1" />
-                          <span className="text-sm font-bold">Recreativo</span>
-                          <p className="text-[10px] mt-1">Diversión y participación</p>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* MTB: profile selected */}
-                  {event?.sportType === "mtb" && mtbProfile && autoCategory && eligibleCategories.length > 0 ? (
-                    <div className="space-y-3">
-                      {mtbProfile === "competitivo" ? (
-                        <div className="bg-white rounded-md p-3 border border-green-200">
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className="w-3 h-3 rounded-full bg-green-500" />
-                            <span className="text-xs font-semibold text-green-700">Categoría asignada:</span>
-                            <span className="font-bold text-foreground">
-                              {autoCategory.includes(" - ") ? autoCategory.split(" - ").pop() : autoCategory}
-                            </span>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground mt-1">
-                            Categoría UCI oficial asignada según tu edad y género
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground block">
-                            Selecciona tu categoría recreativa:
-                          </Label>
-                          <Select
-                            value={raceForm.getValues("category")}
-                            onValueChange={(val) => {
-                              setAutoCategory(val);
-                              raceForm.setValue("category", val);
-                            }}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Selecciona categoría" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {eligibleCategories.map((cat) => (
-                                <SelectItem key={cat.value} value={cat.value}>
-                                  {cat.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                      <input type="hidden" {...raceForm.register("category")} />
-                    </div>
-                  ) : event?.sportType === "mtb" && !mtbProfile ? (
-                    <div className="bg-amber-50 rounded-md p-3 border border-amber-200">
-                      <p className="text-xs text-amber-700">
-                        Selecciona tu modalidad (Competitivo o Recreativo) para ver las categorías disponibles.
-                      </p>
-                    </div>
-                  ) : autoCategory && eligibleCategories.length > 0 ? (
+                  {/* Category display - same for MTB and non-MTB */}
+                  {autoCategory && eligibleCategories.length > 0 ? (
                     <div className="space-y-3">
                       {/* Auto-assigned (sugerida) */}
                       <div className="bg-white rounded-md p-3 border border-green-200">
                         <div className="flex items-center gap-2 mb-1">
                           <div className="w-3 h-3 rounded-full bg-green-500" />
-                          <span className="text-xs font-semibold text-green-700">Sugerida:</span>
+                          <span className="text-xs font-semibold text-green-700">Categoría asignada:</span>
                           <span className="font-bold text-foreground">
                             {autoCategory.includes(" - ") ? autoCategory.split(" - ").pop() : autoCategory}
                           </span>
                         </div>
+                        {categoryMessage && (
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            {categoryMessage}
+                          </p>
+                        )}
                       </div>
 
                       {/* Selector de todas las categorías elegibles */}
                       {eligibleCategories.length > 1 && (
                         <div>
                           <Label className="text-xs text-muted-foreground mb-1 block">
-                            Puedes cambiar a otra categoría donde calificas:
+                            Cambiar categoría:
                           </Label>
                           <Select
                             value={raceForm.getValues("category")}

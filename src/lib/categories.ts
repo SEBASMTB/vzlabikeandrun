@@ -25,13 +25,21 @@ export interface CategoryOption {
 // ============================================================
 
 export interface MTBCategoryOptions {
-  competitivo: CategoryOption[];  // Only the 1 UCI category that matches
-  recreativo: CategoryOption[];   // Recreativo + E-Bike + 100kg categories where age qualifies
-  open: CategoryOption[];         // E-Bike, 100kg (always available, any age)
+  suggested: CategoryOption;        // The auto-assigned category (most specific by age)
+  eligible: CategoryOption[];       // ALL categories the user can choose from
+  message: string;                  // Human-readable explanation
 }
 
 /**
- * For MTB events: returns categories split by competitivo/recreativo profile.
+ * For MTB events: returns the suggested category + all eligible options.
+ *
+ * Rules:
+ * 1. Auto-assign by age & gender (competitivo categories)
+ * 2. Élite: masculino ≥ 19 (always available as option)
+ * 3. 100 Kilos: masculino only (always available as option)
+ * 4. Recreativo: masculino ≥ 25 only (Femenino does NOT see this)
+ * 5. E-bike, Dupla Familiar, Dupla Mixta, Seguridad: always available
+ * 6. Femenino: NO Recreativo option
  */
 export function getMTBCategoryOptions(
   age: number,
@@ -39,51 +47,80 @@ export function getMTBCategoryOptions(
   gender?: string
 ): MTBCategoryOptions {
   const normalizedGender = normalizeGender(gender);
+  const isMale = normalizedGender === "M";
+  const isFemale = normalizedGender === "F";
+  const eligible: CategoryOption[] = [];
 
-  // Filter by gender (same as existing logic - show gender-specific + open categories)
-  let genderFiltered: CategoryOption[];
-  if (normalizedGender) {
-    genderFiltered = categories.filter(
-      (cat) => !cat.gender || cat.gender.toUpperCase() === normalizedGender
-    );
-  } else {
-    genderFiltered = [...categories];
+  // 1. Find the competitivo category that matches age + gender (the "suggested")
+  let suggested: CategoryOption | null = null;
+  const competitivoByAge = categories.filter(
+    (cat) => cat.profile === "competitivo" && age >= cat.minAge && age <= cat.maxAge &&
+      (!cat.gender || cat.gender.toUpperCase() === normalizedGender)
+  );
+  competitivoByAge.sort((a, b) => (a.maxAge - a.minAge) - (b.maxAge - b.minAge));
+  if (competitivoByAge.length > 0) {
+    suggested = competitivoByAge[0];
+    // Add the suggested (not Élite as suggested — only if it's an age-specific category)
+    if (suggested.value !== "MTB-ELI-M") {
+      eligible.push(suggested);
+    }
   }
 
-  // Find competitivo categories where age matches (UCI official)
-  const competitivoFiltered = genderFiltered.filter(
-    (cat) => cat.profile === "competitivo" && age >= cat.minAge && age <= cat.maxAge
-  );
-  // Sort by specificity (smallest range first) and pick only the most specific one
-  competitivoFiltered.sort((a, b) => (a.maxAge - a.minAge) - (b.maxAge - b.minAge));
-  const competitivo = competitivoFiltered.length > 0 ? [competitivoFiltered[0]] : [];
+  // 2. Élite Masculino: available if male AND age ≥ 19
+  if (isMale && age >= 19) {
+    const elite = categories.find(c => c.value === "MTB-ELI-M");
+    if (elite && !eligible.find(e => e.value === "MTB-ELI-M")) {
+      eligible.push(elite);
+    }
+  }
 
-  // Find recreativo categories where age matches
-  const recreativo = genderFiltered.filter(
-    (cat) => cat.profile === "recreativo" && age >= cat.minAge && age <= cat.maxAge
-  );
+  // 3. 100 Kilos Masculino: available only for males
+  if (isMale) {
+    const cien = categories.find(c => c.value === "MTB-100-M");
+    if (cien) eligible.push(cien);
+  }
 
-  // Open categories (no gender restriction AND no profile restriction — E-Bike, 100kg)
-  // Actually, E-Bike and 100kg have profile "recreativo" now, so they'll be in the recreativo list
-  // But we also keep an "open" list for always-available ones
-  const open = genderFiltered.filter(
-    (cat) => !cat.gender && !cat.profile
-  );
+  // 4. Recreativo Masculino: ONLY male AND age ≥ 25 (Femenino does NOT see this)
+  if (isMale && age >= 25) {
+    const rec = categories.find(c => c.value === "MTB-REC-M");
+    if (rec) eligible.push(rec);
+  }
 
-  return { competitivo, recreativo, open };
+  // 5. Special categories (always available for anyone regardless of gender)
+  const specialCodes = ["MTB-DUP-FAM", "MTB-DUP-MIX", "MTB-EBK", "MTB-SEG"];
+  for (const code of specialCodes) {
+    const special = categories.find(c => c.value === code);
+    if (special) eligible.push(special);
+  }
+
+  // Build message
+  const suggestedLabel = suggested
+    ? (suggested.value === "MTB-ELI-M" ? "Élite Masculino" : suggested.label)
+    : "Sin categoría asignada";
+  const hasOptions = eligible.length > 1;
+  const message = hasOptions
+    ? `Basado en tu edad, te corresponde ${suggestedLabel}, pero puedes cambiarla si participas en 100kg, Recreativo o categorías especiales.`
+    : `Tu categoría asignada es ${suggestedLabel}.`;
+
+  return {
+    suggested: suggested || eligible[0] || categories[0],
+    eligible,
+    message,
+  };
 }
 
 /**
- * Validates that a selected MTB category matches the declared profile.
+ * Validates that a selected MTB category is in the eligible list.
+ * Now validates against the full eligible list from getMTBCategoryOptions.
  */
 export function validateMTBCategory(
   categoryValue: string,
   age: number,
   categories: CategoryOption[],
   gender?: string,
-  profile?: "competitivo" | "recreativo"
+  profile?: string
 ): { valid: boolean; error?: string } {
-  // Parse categoryValue: format is "MTB-ELI-M - Élite Varones (19-29)"
+  // Parse categoryValue: format is "MTB-ELI-M - Élite Masculino (Libre)"
   const catCode = categoryValue.includes(" - ") ? categoryValue.split(" - ")[0].trim() : categoryValue.trim();
 
   // Find the category in the list
@@ -96,44 +133,33 @@ export function validateMTBCategory(
     return { valid: false, error: "La categoría seleccionada no es válida para este evento." };
   }
 
-  if (!profile) {
-    // No profile selected, just validate age range
-    if (age >= selectedCat.minAge && age <= selectedCat.maxAge) {
-      return { valid: true };
-    }
-    return { valid: false, error: "La categoría seleccionada no corresponde a tu edad." };
+  // Get eligible categories and check if selected is among them
+  const mtbOpts = getMTBCategoryOptions(age, categories, gender);
+  const isEligible = mtbOpts.eligible.find(c => c.value === selectedCat.value);
+  if (!isEligible) {
+    return { valid: false, error: "La categoría seleccionada no está disponible para tu edad y género." };
   }
 
-  if (profile === "competitivo") {
-    // Must have profile "competitivo" and age must match
-    if (selectedCat.profile !== "competitivo") {
-      return { valid: false, error: "La categoría seleccionada no corresponde al perfil competitivo." };
-    }
-    if (age < selectedCat.minAge || age > selectedCat.maxAge) {
-      return { valid: false, error: "La categoría seleccionada no corresponde a tu edad para el perfil competitivo." };
-    }
+  // Special categories: skip age check (E-bike, Duplas, Seguridad, Élite, 100kg)
+  const skipAgeCheck = ["MTB-DUP-FAM", "MTB-DUP-MIX", "MTB-EBK", "MTB-SEG", "MTB-ELI-M", "MTB-100-M"];
+  if (skipAgeCheck.includes(selectedCat.value)) {
     return { valid: true };
   }
 
-  if (profile === "recreativo") {
-    // Must have profile "recreativo" and age must match
-    // Open categories (no profile) are also acceptable under recreativo
-    if (selectedCat.profile && selectedCat.profile !== "recreativo") {
-      return { valid: false, error: "La categoría seleccionada no corresponde al perfil recreativo." };
-    }
-    if (!selectedCat.profile || selectedCat.profile === "recreativo") {
-      // For open categories (no profile), skip age check
-      // For recreativo categories, check age
-      if (selectedCat.profile === "recreativo") {
-        if (age < selectedCat.minAge || age > selectedCat.maxAge) {
-          return { valid: false, error: "La categoría seleccionada no corresponde a tu edad para el perfil recreativo." };
-        }
-      }
-      return { valid: true };
+  // For gender-specific categories, verify gender
+  if (selectedCat.gender) {
+    const ng = normalizeGender(gender);
+    if (ng && selectedCat.gender.toUpperCase() !== ng) {
+      return { valid: false, error: "Esta categoría no corresponde a tu género." };
     }
   }
 
-  return { valid: false, error: "La categoría seleccionada no corresponde al perfil elegido." };
+  // Check age range for regular categories
+  if (age < selectedCat.minAge || age > selectedCat.maxAge) {
+    return { valid: false, error: "La categoría seleccionada no corresponde a tu edad." };
+  }
+
+  return { valid: true };
 }
 
 // ============================================================

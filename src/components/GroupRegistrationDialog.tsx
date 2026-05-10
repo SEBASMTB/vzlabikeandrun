@@ -323,25 +323,9 @@ export function GroupRegistrationDialog({
               const sportType = event?.sportType || "running";
               const eventCats = parseEventCategories(event?.categories, sportType);
 
-              if (sportType === "mtb" && updated.profile) {
+              if (sportType === "mtb") {
                 const mtbOpts = getMTBCategoryOptions(age, eventCats, updated.gender);
-                if (updated.profile === "competitivo") {
-                  if (mtbOpts.competitivo.length > 0) {
-                    const cat = mtbOpts.competitivo[0];
-                    updated.category = `${cat.value} - ${cat.label}`;
-                  } else {
-                    updated.category = "";
-                  }
-                } else if (updated.profile === "recreativo") {
-                  if (mtbOpts.recreativo.length > 0) {
-                    const cat = mtbOpts.recreativo[0];
-                    updated.category = `${cat.value} - ${cat.label}`;
-                  } else {
-                    updated.category = "";
-                  }
-                } else {
-                  updated.category = "";
-                }
+                updated.category = `${mtbOpts.suggested.value} - ${mtbOpts.suggested.label}`;
               } else {
                 const assigned = assignCategoryFromList(age, eventCats, updated.gender);
                 updated.category = assigned ? `${assigned.value} - ${assigned.label}` : "";
