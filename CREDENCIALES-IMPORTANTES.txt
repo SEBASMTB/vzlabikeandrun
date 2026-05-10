@@ -1,0 +1,91 @@
+============================================================
+ VzlaBike and Run® - DATOS DEL PROYECTO
+ GUARDAR ESTE ARCHIVO EN LUGAR SEGURO
+============================================================
+
+FECHA: Mayo 2026
+
+============================================================
+ 1. PLATAFORMA DE DESPLIEGUE - VERCEL
+============================================================
+URL del proyecto: https://my-project-eosin-nine.vercel.app
+Panel de Vercel:  https://vercel.com/dashboard
+
+Token de API (para deploy desde terminal):
+vcp_1Y5DCCH8QHgKLTw6jbw6fB6R0MYAjA47TfMvAWkVHgTRB0VLiT2jvYSI
+
+Project ID: prj_DgRUomx9f80CT3Ga9clKZXL5Z3ZM
+Organization ID: team_3G40bvlWZFVJPvHqFiRnWJB5
+
+Comando para deploy:
+  npx vercel --prod --token="vcp_1Y5DCCH8QHgKLTw6jbw6fB6R0MYAjA47TfMvAWkVHgTRB0VLiT2jvYSI"
+
+============================================================
+ 2. BASE DE DATOS
+============================================================
+Tipo: Turso (SQLite en la nube)
+La base de datos está configurada como variable de entorno en Vercel.
+Si necesitas acceder directo, revisa las variables de entorno en:
+  Vercel Dashboard > Settings > Environment Variables
+
+============================================================
+ 3. PANEL DE ADMINISTRACIÓN
+============================================================
+URL: https://my-project-eosin-nine.vercel.app/admin
+Usuario: admin
+Contraseña: vzlabike2024
+
+TOKEN_SECRET: vzlabike-admin-v2-2026
+
+============================================================
+ 4. TECNOLOGÍAS DEL PROYECTO
+============================================================
+- Frontend: Next.js (React) con App Router
+- Estilos: Tailwind CSS + shadcn/ui
+- Base de datos: Prisma ORM + Turso (SQLite)
+- Hosting: Vercel (plan gratuito)
+- Lenguaje: TypeScript
+
+Para instalar dependencias:
+  npm install
+
+Para levantar en local:
+  npm run dev
+
+Para generar Prisma:
+  npx prisma generate
+
+============================================================
+ 5. ESTRUCTURA IMPORTANTE DEL PROYECTO
+============================================================
+src/app/                    - Páginas de la web
+src/app/admin/              - Panel de administración
+src/components/             - Componentes reutilizables
+src/lib/                    - Lógica (DB, categorías, utils)
+prisma/schema.prisma        - Modelo de base de datos
+src/lib/categories.ts       - Sistema de categorías por deporte
+
+============================================================
+ 6. PLATAFORMA DE RESULTADOS
+============================================================
+URL: https://vbr-results-portal.vercel.app
+(Aplicación separada para publicar resultados de eventos)
+
+============================================================
+ 7. CORREO DEL PROYECTO
+============================================================
+venezuelabike@gmail.com
+(Git commits, cuentas de servicios)
+
+============================================================
+ 8. QUÉ HACER SI NECESITAS OTRA IA/DESARROLLADOR
+============================================================
+1. Descarga el código (o dale acceso al GitHub)
+2. Pásale este archivo con las credenciales
+3. Dile que es un proyecto Next.js con Prisma + Turso en Vercel
+4. Para deploy: copia el comando de la sección 1
+5. Para cambios en categorías: revisar src/lib/categories.ts
+6. Para cambios en admin: revisar src/app/admin/
+7. Para la BD: revisar prisma/schema.prisma
+
+============================================================
