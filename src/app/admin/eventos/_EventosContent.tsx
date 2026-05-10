@@ -403,27 +403,62 @@ export default function AdminEventosPage() {
     });
   };
 
-  // ---- Image Upload ----
+  // ---- Image Upload (with client-side compression) ----
+  const compressImage = (file: File, maxWidth: number, quality: number): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let w = img.width;
+          let h = img.height;
+
+          // Scale down if wider than maxWidth
+          if (w > maxWidth) {
+            h = Math.round((h * maxWidth) / w);
+            w = maxWidth;
+          }
+
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { reject(new Error("Canvas not supported")); return; }
+          ctx.drawImage(img, 0, 0, w, h);
+
+          const dataUrl = canvas.toDataURL("image/jpeg", quality);
+          resolve(dataUrl);
+        };
+        img.onerror = () => reject(new Error("Error al cargar la imagen"));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error("Error al leer el archivo"));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleImageUpload = async (file: File, type: "card" | "banner") => {
     if (type === "banner") setUploadingBanner(true);
     else setUploadingImage(true);
 
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("type", type);
-
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      if (res.ok) {
-        const data = await res.json();
-        if (type === "banner") {
-          setFormData((prev) => ({ ...prev, bannerImage: data.url }));
-        } else {
-          setFormData((prev) => ({ ...prev, imageUrl: data.url }));
-        }
+      // Check initial file size (max 5MB before compression)
+      if (file.size > 5 * 1024 * 1024) {
+        setFormError("La imagen es muy pesada (máximo 5MB). Reduce el tamaño antes de subir.");
+        return;
       }
-    } catch {
-      // Silently handle
+
+      // Compress: max 1200px for banner, 800px for card, JPEG quality 0.75
+      const maxWidth = type === "banner" ? 1200 : 800;
+      const dataUrl = await compressImage(file, maxWidth, 0.75);
+
+      if (type === "banner") {
+        setFormData((prev) => ({ ...prev, bannerImage: dataUrl }));
+      } else {
+        setFormData((prev) => ({ ...prev, imageUrl: dataUrl }));
+      }
+    } catch (err) {
+      setFormError("Error al procesar la imagen. Intenta con otra imagen o usa una URL directa.");
     } finally {
       setUploadingImage(false);
       setUploadingBanner(false);
