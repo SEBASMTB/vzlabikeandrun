@@ -101,8 +101,8 @@ export async function POST(
       );
     }
 
-    // MTB category/profile validation
-    if (event.sportType === "mtb" && mtbProfile) {
+    // MTB category validation (always validate for MTB events)
+    if (event.sportType === "mtb") {
       const age = calculateAge(dateOfBirth, event.date.toISOString(), event.ageCalcMode || "calendar_year");
       const eventCats = parseEventCategories(event.categories, "mtb");
       const validation = validateMTBCategory(
@@ -114,7 +114,7 @@ export async function POST(
       );
       if (!validation.valid) {
         return NextResponse.json(
-          { error: validation.error || "Categoría no válida para el perfil seleccionado" },
+          { error: validation.error || "Categoría no válida para tu edad o género" },
           { status: 400 }
         );
       }
