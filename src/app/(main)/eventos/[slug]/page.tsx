@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
-import { getCategoriesForSport } from "@/lib/categories";
+import { getCategoriesForSport, parseEventCategories } from "@/lib/categories";
 import { EventDetailPage } from "./EventDetailPage";
 
 interface PageProps {
@@ -26,8 +26,8 @@ export default async function EventPage({ params }: PageProps) {
     notFound();
   }
 
-  // Get sport-specific categories
-  const categories = getCategoriesForSport(event.sportType || "running");
+  // Use event-specific categories from DB when available, otherwise fallback to sport defaults
+  const categories = parseEventCategories(event.categories, event.sportType || "running");
 
   return (
     <EventDetailPage

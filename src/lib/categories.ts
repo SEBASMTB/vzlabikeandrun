@@ -66,7 +66,7 @@ export function getMTBCategoryOptions(
     }
   }
 
-  // 2. Élite Masculino: available if male AND age ≥ 19
+  // 2. Élite Masculino: available if male AND age ≥ 19 (manual override, not auto-suggested)
   if (isMale && age >= 19) {
     const elite = categories.find(c => c.value === "MTB-ELI-M");
     if (elite && !eligible.find(e => e.value === "MTB-ELI-M")) {
@@ -74,7 +74,7 @@ export function getMTBCategoryOptions(
     }
   }
 
-  // 3. 100 Kilos Masculino: available only for males
+  // 3. 100 Kilos Masculino: available only for males (any age, manual override)
   if (isMale) {
     const cien = categories.find(c => c.value === "MTB-100-M");
     if (cien) eligible.push(cien);
@@ -223,25 +223,31 @@ function generateRunning(interval: "5" | "10"): CategoryOption[] {
   return cats;
 }
 
-/** MTB / Ciclismo de Montaña */
+/** MTB / Ciclismo de Montaña — VzlaBike and Run® 16 categorías estándar */
 function generateMTB(interval: "5" | "10"): CategoryOption[] {
   const cats: CategoryOption[] = [];
 
   if (interval === "10") {
-    // VARONES - competitivo (UCI official categories)
-    cats.push({ value: "MTB-JUV-M", label: "Juvenil Varones (15-18)", minAge: 15, maxAge: 18, gender: "M", profile: "competitivo" });
-    cats.push({ value: "MTB-ELI-M", label: "Élite Varones (19-29)", minAge: 19, maxAge: 29, gender: "M", profile: "competitivo" });
-    cats.push({ value: "MTB-MAA-M", label: "Máster A Varones (30-39)", minAge: 30, maxAge: 39, gender: "M", profile: "competitivo" });
-    cats.push({ value: "MTB-MAB-M", label: "Máster B Varones (40-49)", minAge: 40, maxAge: 49, gender: "M", profile: "competitivo" });
-    cats.push({ value: "MTB-MAC-M", label: "Máster C Varones (50-59)", minAge: 50, maxAge: 59, gender: "M", profile: "competitivo" });
-    cats.push({ value: "MTB-MAD-M", label: "Máster D Varones (60+)", minAge: 60, maxAge: 999, gender: "M", profile: "competitivo" });
-    // Recreativo
-    cats.push({ value: "MTB-REC-M", label: "Recreativo Varones (25+)", minAge: 25, maxAge: 999, gender: "M", profile: "recreativo" });
-    // DAMAS - competitivo (UCI official categories)
-    cats.push({ value: "MTB-SPO-F", label: "Sport Femenino (15-29)", minAge: 15, maxAge: 29, gender: "F", profile: "competitivo" });
-    cats.push({ value: "MTB-MAA-F", label: "Máster A Damas (30-39)", minAge: 30, maxAge: 39, gender: "F", profile: "competitivo" });
-    cats.push({ value: "MTB-MAB-F", label: "Máster B Damas (40-49)", minAge: 40, maxAge: 49, gender: "F", profile: "competitivo" });
-    cats.push({ value: "MTB-MAC-F", label: "Máster C Damas (50+)", minAge: 50, maxAge: 999, gender: "F", profile: "competitivo" });
+    // === MASCULINO — competitivo ===
+    cats.push({ value: "MTB-JUV-M", label: "Juvenil Masculino (15-18)", minAge: 15, maxAge: 18, gender: "M", profile: "competitivo" });
+    cats.push({ value: "MTB-SEN-M", label: "Senior Masculino (19-29)", minAge: 19, maxAge: 29, gender: "M", profile: "competitivo" });
+    cats.push({ value: "MTB-MAA-M", label: "Máster A Masculino (30-39)", minAge: 30, maxAge: 39, gender: "M", profile: "competitivo" });
+    cats.push({ value: "MTB-MAB-M", label: "Máster B Masculino (40-49)", minAge: 40, maxAge: 49, gender: "M", profile: "competitivo" });
+    cats.push({ value: "MTB-MAC-M", label: "Máster C Masculino (50-59)", minAge: 50, maxAge: 59, gender: "M", profile: "competitivo" });
+    cats.push({ value: "MTB-MAD-M", label: "Máster D Masculino (60+)", minAge: 60, maxAge: 999, gender: "M", profile: "competitivo" });
+    // Especiales Masculino — recreativo
+    cats.push({ value: "MTB-ELI-M", label: "Élite Masculino (Libre)", minAge: 19, maxAge: 999, gender: "M", profile: "competitivo" });
+    cats.push({ value: "MTB-100-M", label: "100 Kilos Masculino (Libre)", minAge: 15, maxAge: 999, gender: "M", profile: "recreativo" });
+    cats.push({ value: "MTB-REC-M", label: "Recreativo Masculino (25+)", minAge: 25, maxAge: 999, gender: "M", profile: "recreativo" });
+    // === FEMENINO — competitivo ===
+    cats.push({ value: "MTB-SPO-F", label: "Femenino Sport (15-29)", minAge: 15, maxAge: 29, gender: "F", profile: "competitivo" });
+    cats.push({ value: "MTB-MAA-F", label: "Máster A Femenino (30-39)", minAge: 30, maxAge: 39, gender: "F", profile: "competitivo" });
+    cats.push({ value: "MTB-MAB-F", label: "Máster B Femenino (40+)", minAge: 40, maxAge: 999, gender: "F", profile: "competitivo" });
+    // === ESPECIALES (abierto) ===
+    cats.push({ value: "MTB-DUP-FAM", label: "Dupla Familiar (Libre)", minAge: 15, maxAge: 999, profile: "recreativo" });
+    cats.push({ value: "MTB-DUP-MIX", label: "Dupla Mixta (Libre)", minAge: 15, maxAge: 999, profile: "recreativo" });
+    cats.push({ value: "MTB-EBK", label: "E-Bike (Libre)", minAge: 15, maxAge: 999, profile: "recreativo" });
+    cats.push({ value: "MTB-SEG", label: "Organismos de Seguridad del Estado (Libre)", minAge: 18, maxAge: 999, profile: "recreativo" });
   } else {
     // Cada 5 años
     // VARONES - competitivo
@@ -269,10 +275,6 @@ function generateMTB(interval: "5" | "10"): CategoryOption[] {
       idx++;
     }
   }
-
-  // ABIERTAS (recreativo profile - accessible to anyone regardless of profile)
-  cats.push({ value: "MTB-EBK", label: "E-Bike (Abierta)", minAge: 15, maxAge: 999, profile: "recreativo" });
-  cats.push({ value: "MTB-100", label: "100 kg+ (Abierta)", minAge: 15, maxAge: 999, profile: "recreativo" });
 
   return cats;
 }

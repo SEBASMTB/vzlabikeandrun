@@ -51,6 +51,8 @@ interface EventData {
   ageCalcMode: string;
   categoryInterval: number;
   registrationCount: number;
+  hasShirt: boolean;
+  categories: string;
 }
 
 interface CategoryOption {
@@ -513,18 +515,16 @@ export function EventDetailPage({ event, categories }: EventDetailPageProps) {
           imageUrl: event.bannerImage || event.imageUrl,
           price: event.price,
           priceBs: event.priceBs,
-          eventTime: event.eventTime,
           featured: event.featured,
+          sportType: event.sportType || "running",
+          ageCalcMode: event.ageCalcMode || "calendar_year",
+          hasShirt: event.hasShirt,
+          categories: event.categories,
         }}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         eventData={{
           organizer: event.organizer,
-        }}
-        eventConfig={{
-          ageCalcMode: event.ageCalcMode || "calendar_year",
-          sportType: event.sportType || "running",
-          categories,
         }}
       />
     </div>
