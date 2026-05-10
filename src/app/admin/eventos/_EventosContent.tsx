@@ -57,7 +57,9 @@ import {
   getCategoriesForSport,
   parseEventCategories,
   serializeEventCategories,
+  getCategoryPresets,
   type CategoryOption,
+  type CategoryPreset,
 } from "@/lib/categories";
 import { cn } from "@/lib/utils";
 
@@ -196,8 +198,8 @@ function formatDate(dateStr: string): string {
 }
 
 // Parsea formData.categories (JSON) a CategoryOption[]
-function parseFormDataCategories(catsStr: string): CategoryOption[] {
-  return parseEventCategories(catsStr, "running");
+function parseFormDataCategories(catsStr: string, sportType: string = "running"): CategoryOption[] {
+  return parseEventCategories(catsStr, sportType);
 }
 
 // ============================================================
@@ -296,9 +298,29 @@ export default function AdminEventosPage() {
       ...prev,
       sportType,
       category: sportType,
-      categories: "", // Reset categories when sport changes
       categoryInterval: prev.categoryInterval || "10",
     }));
+    // Auto-load default preset categories for this sport type
+    const presets = getCategoryPresets(sportType);
+    if (presets.length > 0) {
+      // Use the first preset (event-specific if available, otherwise general)
+      const defaultPreset = presets[0];
+      setFormData((prev) => ({
+        ...prev,
+        categories: serializeEventCategories(defaultPreset.categories),
+      }));
+    }
+  };
+
+  const handlePresetChange = (presetId: string) => {
+    const presets = getCategoryPresets(formData.sportType);
+    const preset = presets.find(p => p.id === presetId);
+    if (preset) {
+      setFormData((prev) => ({
+        ...prev,
+        categories: serializeEventCategories(preset.categories),
+      }));
+    }
   };
 
   const handleIntervalChange = (interval: string) => {
@@ -311,7 +333,7 @@ export default function AdminEventosPage() {
 
   const handleCategoryToggle = (cat: CategoryOption) => {
     setFormData((prev) => {
-      const selected = parseFormDataCategories(prev.categories);
+      const selected = parseFormDataCategories(prev.categories, formData.sportType);
       const exists = selected.find((c) => c.value === cat.value);
       const updated = exists
         ? selected.filter((c) => c.value !== cat.value)
@@ -332,7 +354,7 @@ export default function AdminEventosPage() {
     const values = genderCats.map((c) => c.value);
 
     setFormData((prev) => {
-      const selected = parseFormDataCategories(prev.categories);
+      const selected = parseFormDataCategories(prev.categories, formData.sportType);
       const allSelected = genderCats.every((c) =>
         selected.find((s) => s.value === c.value)
       );
@@ -363,7 +385,7 @@ export default function AdminEventosPage() {
       gender,
     };
     setFormData((prev) => {
-      const selected = parseFormDataCategories(prev.categories);
+      const selected = parseFormDataCategories(prev.categories, formData.sportType);
       const updated = [...selected, newCat];
       return { ...prev, categories: serializeEventCategories(updated) };
     });
@@ -375,7 +397,7 @@ export default function AdminEventosPage() {
 
   const handleRemoveCategory = (catValue: string) => {
     setFormData((prev) => {
-      const selected = parseFormDataCategories(prev.categories);
+      const selected = parseFormDataCategories(prev.categories, formData.sportType);
       const updated = selected.filter((c) => c.value !== catValue);
       return { ...prev, categories: serializeEventCategories(updated) };
     });
@@ -482,6 +504,7 @@ export default function AdminEventosPage() {
   );
 
   // ---- Categories for current sport ----
+  const availablePresets = getCategoryPresets(formData.sportType);
   const selectedCats = parseFormDataCategories(formData.categories);
   const selectedCatValues = selectedCats.map((c) => c.value);
   const interval = (formData.categoryInterval as "5" | "10") || "10";
@@ -867,10 +890,32 @@ export default function AdminEventosPage() {
             {/* ---- CATEGORIES ---- */}
             <SectionTitle>Categorías del Evento</SectionTitle>
 
-            {/* Preset categories by gender */}
+            {/* Preset Selector */}
+            {availablePresets.length > 1 && (
+              <div className="sm:col-span-2">
+                <Label>Plantilla de Categorías</Label>
+                <Select onValueChange={handlePresetChange}>
+                  <SelectTrigger className="mt-1 w-full">
+                    <SelectValue placeholder="Selecciona una plantilla..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availablePresets.map((preset) => (
+                      <SelectItem key={preset.id} value={preset.id}>
+                        {preset.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Al cambiar la plantilla se reemplazan todas las categorías seleccionadas.
+                </p>
+              </div>
+            )}
+
+            {/* Preset categories info */}
             <div className="sm:col-span-2 text-xs text-muted-foreground">
               Deporte: <span className="font-semibold">{sportTypeLabels[formData.sportType] || formData.sportType}</span>
-              {" — "}{groupedCats.male.length + groupedCats.female.length + groupedCats.open.length} categorías predefinidas disponibles
+              {" — "}{selectedCats.length} categoría(s) seleccionada(s) de {groupedCats.male.length + groupedCats.female.length + groupedCats.open.length} disponibles
               <br />
               Haz clic en las categorías para activarlas, o agrega categorías personalizadas abajo.
             </div>

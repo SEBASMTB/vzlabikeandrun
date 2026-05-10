@@ -385,6 +385,116 @@ export function getCategoriesForSport(
   }
 }
 
+// ============================================================
+// PRESETS de categorías por tipo de deporte
+// Cada preset tiene nombre, descripción y categorías predefinidas
+// ============================================================
+
+export interface CategoryPreset {
+  id: string;            // identificador único (ej: "mtb-culata")
+  label: string;         // nombre visible (ej: "MTB - Desafío a La Culata")
+  description: string;   // descripción corta
+  sportType: string;     // tipo de deporte principal
+  categories: CategoryOption[];
+}
+
+/** Presets disponibles por tipo de deporte */
+const CATEGORY_PRESETS: CategoryPreset[] = [
+  {
+    id: "mtb-culata",
+    label: "MTB - Desafío a La Culata",
+    description: "16 categorías estándar MTB (7M + 3EspecialesM + 3F + 4Especiales)",
+    sportType: "mtb",
+    categories: generateMTB("10"),
+  },
+  {
+    id: "running-campana",
+    label: "Ruta - Campaña Admirable",
+    description: "Categorías de ruta/carrera para la Campaña Admirable",
+    sportType: "running",
+    categories: generateRunning("10"),
+  },
+  {
+    id: "running-cumbre",
+    label: "Ruta - Reto a la Cumbre",
+    description: "Categorías de ruta para el Reto a la Cumbre",
+    sportType: "running",
+    categories: generateRunning("10"),
+  },
+  {
+    id: "mtb-general",
+    label: "MTB - General (10 años)",
+    description: "Categorías MTB genéricas cada 10 años",
+    sportType: "mtb",
+    categories: generateMTB("10"),
+  },
+  {
+    id: "mtb-5yr",
+    label: "MTB - General (5 años)",
+    description: "Categorías MTB genéricas cada 5 años",
+    sportType: "mtb",
+    categories: generateMTB("5"),
+  },
+  {
+    id: "running-general",
+    label: "Running - General (10 años)",
+    description: "Categorías de carrera genéricas cada 10 años",
+    sportType: "running",
+    categories: generateRunning("10"),
+  },
+  {
+    id: "running-5yr",
+    label: "Running - General (5 años)",
+    description: "Categorías de carrera genéricas cada 5 años",
+    sportType: "running",
+    categories: generateRunning("5"),
+  },
+  {
+    id: "trail-general",
+    label: "Trail / Trekking",
+    description: "Categorías Trail Running / Trekking",
+    sportType: "trail",
+    categories: generateTrekking("10"),
+  },
+  {
+    id: "triathlon-general",
+    label: "Triatlón",
+    description: "Categorías de Triatlón / Duatlón / Acuatlón",
+    sportType: "triathlon",
+    categories: generateMultiSport("TRI", "10"),
+  },
+  {
+    id: "virtual-general",
+    label: "Virtual",
+    description: "Categorías de evento virtual",
+    sportType: "virtual",
+    categories: generateVirtual("10"),
+  },
+];
+
+/**
+ * Obtiene todos los presets disponibles para un tipo de deporte dado.
+ * Si sportType está vacío, devuelve todos.
+ */
+export function getCategoryPresets(sportType?: string): CategoryPreset[] {
+  if (!sportType) return CATEGORY_PRESETS;
+  return CATEGORY_PRESETS.filter(p => p.sportType === sportType);
+}
+
+/**
+ * Obtiene un preset específico por ID.
+ */
+export function getCategoryPresetById(presetId: string): CategoryPreset | undefined {
+  return CATEGORY_PRESETS.find(p => p.id === presetId);
+}
+
+/**
+ * Obtiene el primer preset (por defecto) para un tipo de deporte.
+ */
+export function getDefaultPreset(sportType: string): CategoryPreset | undefined {
+  return CATEGORY_PRESETS.find(p => p.sportType === sportType);
+}
+
 /**
  * Obtiene categorías por deporte (compatibilidad con versiones anteriores)
  */
