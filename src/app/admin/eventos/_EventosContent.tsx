@@ -129,8 +129,8 @@ const emptyForm: FormData = {
   date: "",
   location: "",
   distance: "",
-  category: "running",
-  sportType: "running",
+  category: "",
+  sportType: "",
   imageUrl: "",
   bannerImage: "",
   price: 0,
@@ -169,6 +169,7 @@ const statusLabels: Record<string, string> = {
 const sportTypeLabels: Record<string, string> = {
   running: "Running / Carrera",
   mtb: "MTB / Ciclismo",
+  "mtb-ruta": "MTB + Ruta (Combinado)",
   trekking: "Trekking / Trail",
   triathlon: "Triatlón",
   duathlon: "Duatlón",
@@ -199,6 +200,7 @@ function formatDate(dateStr: string): string {
 
 // Parsea formData.categories (JSON) a CategoryOption[]
 function parseFormDataCategories(catsStr: string, sportType: string = "running"): CategoryOption[] {
+  if (!catsStr || !catsStr.trim()) return [];
   return parseEventCategories(catsStr, sportType);
 }
 
@@ -539,11 +541,12 @@ export default function AdminEventosPage() {
   );
 
   // ---- Categories for current sport ----
-  const availablePresets = getCategoryPresets(formData.sportType);
+  const hasSportType = formData.sportType && formData.sportType.trim() !== "";
+  const availablePresets = hasSportType ? getCategoryPresets(formData.sportType) : [];
   const selectedCats = parseFormDataCategories(formData.categories, formData.sportType);
   const selectedCatValues = selectedCats.map((c) => c.value);
   const interval = (formData.categoryInterval as "5" | "10") || "10";
-  const sportCategories = getCategoriesForSport(formData.sportType, interval);
+  const sportCategories = hasSportType ? getCategoriesForSport(formData.sportType, interval) : [];
   const groupedCats = {
     male: sportCategories.filter(c => c.gender === "M"),
     female: sportCategories.filter(c => c.gender === "F"),
@@ -925,6 +928,14 @@ export default function AdminEventosPage() {
             {/* ---- CATEGORIES ---- */}
             <SectionTitle>Categorías del Evento</SectionTitle>
 
+            {!hasSportType ? (
+              <div className="sm:col-span-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Primero selecciona el <strong>Tipo de Deporte</strong> arriba para ver y configurar las categorías.
+                </p>
+              </div>
+            ) : (
+              <>
             {/* Preset Selector */}
             {availablePresets.length > 1 && (
               <div className="sm:col-span-2">
@@ -1153,6 +1164,9 @@ export default function AdminEventosPage() {
                   ))}
                 </div>
               </div>
+            )}
+
+            </>
             )}
 
             {/* ---- AGE CALCULATION MODE ---- */}

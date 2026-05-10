@@ -373,6 +373,7 @@ export function getCategoriesForSport(
   switch (sportType) {
     case "running":    return generateRunning(interval);
     case "mtb":        return generateMTB(interval);
+    case "mtb-ruta":   return [...generateMTB(interval), ...generateRunning(interval)];
     case "trekking":   return generateTrekking(interval);
     case "trail":      return generateTrekking(interval);
     case "triathlon":  return generateMultiSport("TRI", interval);
@@ -427,6 +428,13 @@ const CATEGORY_PRESETS: CategoryPreset[] = [
     description: "Categorías MTB genéricas cada 10 años",
     sportType: "mtb",
     categories: generateMTB("10"),
+  },
+  {
+    id: "mtb-ruta-general",
+    label: "MTB + Ruta - General (10 años)",
+    description: "Categorías combinadas de MTB y Ruta cada 10 años",
+    sportType: "mtb-ruta",
+    categories: [...generateMTB("10"), ...generateRunning("10")],
   },
   {
     id: "mtb-5yr",
