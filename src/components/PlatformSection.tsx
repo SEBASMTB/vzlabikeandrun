@@ -188,7 +188,7 @@ export function PlatformSection() {
           <Button
             size="lg"
             className="gradient-primary text-white border-0 text-base px-8 h-12"
-            onClick={() => { window.location.href = "/resultados"; }}
+            onClick={() => { window.location.href = "https://vbr-results-portal.vercel.app"; }}
           >
             Ver Plataforma de Resultados
             <ArrowRight className="size-5" />

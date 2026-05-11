@@ -13,7 +13,7 @@ const navLinks = [
   { label: "Servicios", href: "/", anchor: "#servicios" },
   { label: "Eventos", href: "/", anchor: "#eventos" },
   { label: "Tienda", href: "/tienda" },
-  { label: "Resultados", href: "/resultados" },
+  { label: "Resultados", href: "https://vbr-results-portal.vercel.app" },
   { label: "Contacto", href: "/", anchor: "#contacto" },
 ];
 

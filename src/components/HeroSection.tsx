@@ -124,7 +124,7 @@ export function HeroSection() {
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <a
-                    href="/resultados"
+                    href="https://vbr-results-portal.vercel.app"
                     className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
                   >
                     Ver Resultados
