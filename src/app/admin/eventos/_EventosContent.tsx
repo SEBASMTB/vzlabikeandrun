@@ -175,8 +175,6 @@ const sportTypeLabels: Record<string, string> = {
   duathlon: "Duatlón",
   aquathlon: "Acuatlón",
   virtual: "Virtual",
-  recreativo: "Recreativo",
-  seguridad: "Seguridad",
   trail: "Trail Running",
 };
 
