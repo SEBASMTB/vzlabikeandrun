@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -9,21 +9,40 @@ import {
   Clock,
   Users,
   Trophy,
+  Medal,
   Shirt,
   BookOpen,
   ChevronLeft,
   ArrowRight,
-  DollarSign,
   Tag,
   Star,
   Info,
   Shield,
+  Package,
+  Gift,
+  Timer,
+  ScrollText,
+  Droplets,
+  Apple,
+  Car,
+  GraduationCap,
+  CreditCard,
+  Bike,
+  Backpack,
+  Flame,
+  Sparkles,
+  Heart,
+  Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CountdownTimer } from "@/components/CountdownTimer";
 import { RegistrationDialog } from "@/components/RegistrationDialog";
+
+// ============================================================
+// Interfaces
+// ============================================================
 
 interface EventData {
   id: string;
@@ -67,6 +86,151 @@ interface EventDetailPageProps {
   categories: CategoryOption[];
 }
 
+// ============================================================
+// Kit Visual Parser — auto-detect items and assign icons
+// ============================================================
+
+interface KitItem {
+  label: string;
+  icon: React.ReactNode;
+  gradient: string;
+}
+
+const KIT_PATTERNS: { regex: RegExp; icon: React.ReactNode; gradient: string; defaultLabel?: string }[] = [
+  { regex: /jersey|franela|camiseta|remera|playera|shirt/i, icon: <Shirt className="size-7" />, gradient: "from-red-500 to-rose-600" },
+  { regex: /chip|cronometr|timing|dorsal|bib|n.mero/i, icon: <Timer className="size-7" />, gradient: "from-emerald-500 to-green-600" },
+  { regex: /medalla/i, icon: <Medal className="size-7" />, gradient: "from-amber-500 to-yellow-600" },
+  { regex: /certificado|diploma/i, icon: <ScrollText className="size-7" />, gradient: "from-blue-500 to-indigo-600" },
+  { regex: /tula|mochila|bolsa|malet.n/i, icon: <Backpack className="size-7" />, gradient: "from-purple-500 to-violet-600" },
+  { regex: /agua|hidrataci.n|bebida/i, icon: <Droplets className="size-7" />, gradient: "from-cyan-500 to-teal-600" },
+  { regex: /alimento|snack|comida|fruta|avituallamiento/i, icon: <Apple className="size-7" />, gradient: "from-orange-500 to-amber-600" },
+  { regex: /patrocinante|regalo|obsequio|gift|sorpresa/i, icon: <Gift className="size-7" />, gradient: "from-pink-500 to-fuchsia-600" },
+  { regex: /gorra|gorro/i, icon: <GraduationCap className="size-7" />, gradient: "from-slate-500 to-gray-600" },
+  { regex: /casco/i, icon: <Shield className="size-7" />, gradient: "from-zinc-500 to-neutral-600" },
+  { regex: /carro\s*escoba|sag\s*vehicle|camioneta/i, icon: <Car className="size-7" />, gradient: "from-sky-500 to-blue-600" },
+  { regex: /llavero|llave/i, icon: <CreditCard className="size-7" />, gradient: "from-stone-500 to-neutral-600" },
+  { regex: /toalla/i, icon: <Sparkles className="size-7" />, gradient: "from-teal-500 to-cyan-600" },
+  { regex: /bici|bicicleta/i, icon: <Bike className="size-7" />, gradient: "from-lime-500 to-green-600" },
+  { regex: /foto|fotograf/i, icon: <Camera className="size-7" />, gradient: "from-indigo-500 to-purple-600" },
+  { regex: /masaje|recuperaci.n/i, icon: <Heart className="size-7" />, gradient: "from-rose-500 to-pink-600" },
+  { regex: /troph?eo|copa/i, icon: <Trophy className="size-7" />, gradient: "from-yellow-500 to-amber-600" },
+];
+
+function parseKitItems(text: string): KitItem[] {
+  // Split by newlines first, then by bullets, then by commas
+  const rawItems = text
+    .split(/\n/)
+    .flatMap(line => {
+      // Check if line has bullets/numbered items
+      const parts = line.split(/[•\-\*]\s*/);
+      return parts.length > 1 ? parts : [line];
+    })
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  // If only one line and it has commas, split by comma
+  let items = rawItems;
+  if (items.length <= 1 && text.includes(",")) {
+    items = text.split(",").map(s => s.trim()).filter(Boolean);
+  }
+
+  return items.map(item => {
+    for (const pattern of KIT_PATTERNS) {
+      if (pattern.regex.test(item)) {
+        return { label: item, icon: pattern.icon, gradient: pattern.gradient };
+      }
+    }
+    // Default icon for unrecognized items
+    return { label: item, icon: <Package className="size-7" />, gradient: "from-gray-500 to-slate-600" };
+  });
+}
+
+// ============================================================
+// Prizes Visual Parser — detect positions and structure
+// ============================================================
+
+interface PrizeItem {
+  label: string;
+  position?: number; // 1, 2, 3
+  icon: React.ReactNode;
+  accentColor: string;
+  borderColor: string;
+  bgColor: string;
+  iconBg: string;
+  textColor: string;
+}
+
+function parsePrizes(text: string): PrizeItem[] {
+  const lines = text
+    .split(/\n/)
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  return lines.map(line => {
+    const lower = line.toLowerCase();
+    let position: number | undefined;
+    let icon = <Trophy className="size-5" />;
+    let accentColor = "text-amber-600";
+    let borderColor = "border-amber-200";
+    let bgColor = "bg-gradient-to-br from-amber-50 to-yellow-50";
+    let iconBg = "bg-amber-100";
+    let textColor = "text-amber-900";
+
+    if (/1.er|primer|1ro|1.o|primero|1\.|oro|gold/i.test(lower)) {
+      position = 1;
+      icon = <Trophy className="size-5" />;
+      accentColor = "text-amber-500";
+      borderColor = "border-amber-300";
+      bgColor = "bg-gradient-to-br from-amber-50 to-yellow-50";
+      iconBg = "bg-amber-200";
+      textColor = "text-amber-900";
+    } else if (/2.do|segundo|2ro|2\.|plata|silver/i.test(lower)) {
+      position = 2;
+      icon = <Medal className="size-5" />;
+      accentColor = "text-gray-400";
+      borderColor = "border-gray-300";
+      bgColor = "bg-gradient-to-br from-gray-50 to-slate-100";
+      iconBg = "bg-gray-200";
+      textColor = "text-gray-700";
+    } else if (/3.er|tercer|3ro|3\.|bronce|bronze/i.test(lower)) {
+      position = 3;
+      icon = <Medal className="size-5" />;
+      accentColor = "text-orange-600";
+      borderColor = "border-orange-200";
+      bgColor = "bg-gradient-to-br from-orange-50 to-amber-50";
+      iconBg = "bg-orange-200";
+      textColor = "text-orange-900";
+    } else if (/trofeo|copa|premio/i.test(lower)) {
+      icon = <Trophy className="size-5" />;
+      accentColor = "text-yellow-500";
+      borderColor = "border-yellow-200";
+      bgColor = "bg-gradient-to-br from-yellow-50 to-amber-50";
+      iconBg = "bg-yellow-100";
+      textColor = "text-yellow-900";
+    } else if (/medall|podio/i.test(lower)) {
+      icon = <Medal className="size-5" />;
+      accentColor = "text-blue-500";
+      borderColor = "border-blue-200";
+      bgColor = "bg-gradient-to-br from-blue-50 to-indigo-50";
+      iconBg = "bg-blue-100";
+      textColor = "text-blue-900";
+    } else if (/efectivo|dinero|cash|bs\b|usd|\$|premio.*econ/i.test(lower)) {
+      icon = <Target className="size-5" />;
+      accentColor = "text-green-500";
+      borderColor = "border-green-200";
+      bgColor = "bg-gradient-to-br from-green-50 to-emerald-50";
+      iconBg = "bg-green-100";
+      textColor = "text-green-900";
+    }
+
+    return { label: line, position, icon, accentColor, borderColor, bgColor, iconBg, textColor };
+  });
+}
+
+// ============================================================
+// Constants
+// ============================================================
+
 const sportTypeLabels: Record<string, string> = {
   running: "Running / Carrera",
   mtb: "Ciclismo MTB",
@@ -79,6 +243,7 @@ const sportTypeLabels: Record<string, string> = {
   recreativo: "Recreativo (Tiempo Protegido)",
   seguridad: "Organismos de Seguridad",
   other: "Otro",
+  "mtb-ruta": "MTB + Ruta (Combinado)",
 };
 
 const sportTypeColors: Record<string, string> = {
@@ -93,6 +258,16 @@ const sportTypeColors: Record<string, string> = {
   recreativo: "bg-pink-100 text-pink-700 border-pink-200",
   seguridad: "bg-slate-100 text-slate-700 border-slate-200",
   other: "bg-gray-100 text-gray-700 border-gray-200",
+  "mtb-ruta": "bg-gradient-to-r from-amber-100 to-red-100 text-red-700 border-red-200",
+};
+
+const detailIcons: Record<string, { icon: React.ReactNode; color: string }> = {
+  distance: { icon: <Target className="size-5" />, color: "text-red-500" },
+  sport: { icon: <Flame className="size-5" />, color: "text-orange-500" },
+  location: { icon: <MapPin className="size-5" />, color: "text-blue-500" },
+  organizer: { icon: <Users className="size-5" />, color: "text-purple-500" },
+  participants: { icon: <Users className="size-5" />, color: "text-green-500" },
+  ageCalc: { icon: <Calendar className="size-5" />, color: "text-teal-500" },
 };
 
 function formatDateFull(dateStr: string): string {
@@ -104,9 +279,33 @@ function formatDateFull(dateStr: string): string {
   });
 }
 
+// ============================================================
+// Animation variants
+// ============================================================
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 },
+  },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 16, scale: 0.95 },
+  show: { opacity: 1, y: 0, scale: 1 },
+};
+
+// ============================================================
+// Main Component
+// ============================================================
+
 export function EventDetailPage({ event, categories }: EventDetailPageProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const spotsLeft = event.maxParticipants - event.registrationCount;
+
+  const kitItems = useMemo(() => (event.kitInfo ? parseKitItems(event.kitInfo) : []), [event.kitInfo]);
+  const prizeItems = useMemo(() => (event.prizes ? parsePrizes(event.prizes) : []), [event.prizes]);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -199,7 +398,7 @@ export function EventDetailPage({ event, categories }: EventDetailPageProps) {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-gray-50 rounded-2xl p-6 border"
+                className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-2xl p-6 border border-gray-200/50"
               >
                 <p className="text-sm font-medium text-muted-foreground mb-3">
                   Cuenta Regresiva
@@ -218,13 +417,15 @@ export function EventDetailPage({ event, categories }: EventDetailPageProps) {
                     <Info className="size-5 text-red-500" />
                     Información General
                   </h2>
-                  <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-line">
-                    {event.description}
+                  <div className="bg-gradient-to-br from-white to-gray-50/80 rounded-2xl p-6 border border-gray-200/50">
+                    <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-line leading-relaxed">
+                      {event.description}
+                    </div>
                   </div>
                 </motion.section>
               )}
 
-              {/* Event Details Grid */}
+              {/* Event Details Grid — Enhanced with icons */}
               <motion.section
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -235,37 +436,79 @@ export function EventDetailPage({ event, categories }: EventDetailPageProps) {
                   Detalles del Evento
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-gray-50 rounded-xl p-4 border">
-                    <p className="text-xs text-muted-foreground mb-1">Distancia(s)</p>
-                    <p className="font-semibold text-foreground">{event.distance}</p>
+                  <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-xl bg-red-50 text-red-500 group-hover:scale-110 transition-transform">
+                        <Target className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Distancia(s)</p>
+                        <p className="font-semibold text-foreground">{event.distance}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-gray-50 rounded-xl p-4 border">
-                    <p className="text-xs text-muted-foreground mb-1">Disciplina</p>
-                    <p className="font-semibold text-foreground">
-                      {sportTypeLabels[event.sportType] || event.category}
-                    </p>
+                  <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-xl bg-orange-50 text-orange-500 group-hover:scale-110 transition-transform">
+                        <Flame className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Disciplina</p>
+                        <p className="font-semibold text-foreground">
+                          {sportTypeLabels[event.sportType] || event.category}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-gray-50 rounded-xl p-4 border">
-                    <p className="text-xs text-muted-foreground mb-1">Lugar</p>
-                    <p className="font-semibold text-foreground">{event.location}</p>
+                  <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-xl bg-blue-50 text-blue-500 group-hover:scale-110 transition-transform">
+                        <MapPin className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Lugar</p>
+                        <p className="font-semibold text-foreground">{event.location}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-gray-50 rounded-xl p-4 border">
-                    <p className="text-xs text-muted-foreground mb-1">Organizador</p>
-                    <p className="font-semibold text-foreground">{event.organizer || "VzlaBike and Run®"}</p>
+                  <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-xl bg-purple-50 text-purple-500 group-hover:scale-110 transition-transform">
+                        <Users className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Organizador</p>
+                        <p className="font-semibold text-foreground">{event.organizer || "VzlaBike and Run®"}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-gray-50 rounded-xl p-4 border">
-                    <p className="text-xs text-muted-foreground mb-1">Participantes</p>
-                    <p className="font-semibold text-foreground">
-                      {event.registrationCount} / {event.maxParticipants}
-                    </p>
+                  <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-xl bg-green-50 text-green-500 group-hover:scale-110 transition-transform">
+                        <Users className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Participantes</p>
+                        <p className="font-semibold text-foreground">
+                          {event.registrationCount} / {event.maxParticipants}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-gray-50 rounded-xl p-4 border">
-                    <p className="text-xs text-muted-foreground mb-1">Cálculo de Edad</p>
-                    <p className="font-semibold text-foreground">
-                      {event.ageCalcMode === "calendar_year"
-                        ? "Año Calendario"
-                        : "Fecha del Día del Evento"}
-                    </p>
+                  <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-xl bg-teal-50 text-teal-500 group-hover:scale-110 transition-transform">
+                        <Calendar className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Cálculo de Edad</p>
+                        <p className="font-semibold text-foreground">
+                          {event.ageCalcMode === "calendar_year"
+                            ? "Año Calendario"
+                            : "Fecha del Día del Evento"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.section>
@@ -285,55 +528,167 @@ export function EventDetailPage({ event, categories }: EventDetailPageProps) {
                     Las categorías se asignan automáticamente al momento de la inscripción según la disciplina{" "}
                     <strong>{sportTypeLabels[event.sportType] || event.category}</strong>.
                   </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  <motion.div
+                    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"
+                    variants={container}
+                    initial="hidden"
+                    animate="show"
+                  >
                     {categories.map((cat) => (
-                      <div
+                      <motion.div
                         key={cat.value}
-                        className="bg-white rounded-xl border p-3 text-center hover:border-red-300 transition-colors"
+                        variants={item}
+                        className="bg-white rounded-xl border p-3 text-center hover:border-red-300 hover:shadow-md transition-all cursor-default"
                       >
                         <p className="text-[10px] font-mono text-red-500 font-bold">{cat.value}</p>
                         <p className="font-semibold text-sm text-foreground mt-0.5">{cat.label}</p>
-                      </div>
+                      </motion.div>
                     ))}
-                  </div>
+                  </motion.div>
                 </motion.section>
               )}
 
-              {/* Prizes */}
-              {event.prizes && (
+              {/* ========== KIT DE PARTICIPANTE — VISUAL CARDS ========== */}
+              {kitItems.length > 0 && (
                 <motion.section
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25 }}
                 >
-                  <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-4">
-                    <Trophy className="size-5 text-red-500" />
-                    Premios
+                  <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-2">
+                    <Shirt className="size-5 text-red-500" />
+                    Kit de Participante
                   </h2>
-                  <div className="bg-yellow-50 rounded-xl p-5 border border-yellow-200">
-                    <div className="prose prose-sm max-w-none text-yellow-900 whitespace-pre-line">
-                      {event.prizes}
-                    </div>
-                  </div>
+                  <p className="text-sm text-muted-foreground mb-5">
+                    Todo lo que incluye tu inscripción
+                  </p>
+                  <motion.div
+                    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
+                    variants={container}
+                    initial="hidden"
+                    animate="show"
+                  >
+                    {kitItems.map((kit, idx) => (
+                      <motion.div
+                        key={idx}
+                        variants={item}
+                        className="relative group cursor-default"
+                      >
+                        <div className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                          {/* Icon with gradient background */}
+                          <div className={`w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ${kit.gradient} flex items-center justify-center text-white mb-3 group-hover:scale-110 transition-transform duration-300 shadow-md`}>
+                            {kit.icon}
+                          </div>
+                          {/* Label */}
+                          <p className="text-xs font-medium text-center text-foreground leading-tight">
+                            {kit.label}
+                          </p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </motion.div>
                 </motion.section>
               )}
 
-              {/* Kit Info */}
-              {event.kitInfo && (
+              {/* ========== PREMIOS — VISUAL CARDS ========== */}
+              {prizeItems.length > 0 && (
                 <motion.section
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
                 >
-                  <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-4">
-                    <Shirt className="size-5 text-red-500" />
-                    Kit de Participante
+                  <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-2">
+                    <Trophy className="size-5 text-yellow-500" />
+                    Premios
                   </h2>
-                  <div className="bg-blue-50 rounded-xl p-5 border border-blue-200">
-                    <div className="prose prose-sm max-w-none text-blue-900 whitespace-pre-line">
-                      {event.kitInfo}
+                  <p className="text-sm text-muted-foreground mb-5">
+                    Reconocimiento a los mejores
+                  </p>
+
+                  {/* Podium for top 3 */}
+                  {prizeItems.some(p => p.position) ? (
+                    <div className="space-y-4">
+                      {/* Top 3 podium cards */}
+                      {prizeItems.filter(p => p.position).length >= 2 && (
+                        <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+                          {[...prizeItems.filter(p => p.position).sort((a, b) => (a.position || 99) - (b.position || 99))].map((prize, idx) => (
+                            <motion.div
+                              key={idx}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.3 + idx * 0.1 }}
+                              className={`flex-1 ${prize.position === 1 ? "sm:order-2" : prize.position === 2 ? "sm:order-1" : "sm:order-3"}`}
+                            >
+                              <div className={`${prize.bgColor} rounded-2xl p-5 border ${prize.borderColor} h-full relative overflow-hidden`}>
+                                {/* Position badge */}
+                                <div className={`absolute top-3 right-3 ${prize.iconBg} rounded-full w-8 h-8 flex items-center justify-center ${prize.accentColor} font-bold text-sm`}>
+                                  {prize.position}
+                                </div>
+                                {/* Icon */}
+                                <div className={`${prize.iconBg} w-12 h-12 rounded-xl flex items-center justify-center ${prize.accentColor} mb-3`}>
+                                  {prize.icon}
+                                </div>
+                                <p className={`font-semibold text-sm ${prize.textColor} leading-snug`}>
+                                  {prize.label}
+                                </p>
+                                {prize.position === 1 && (
+                                  <div className="absolute -bottom-1 -right-1 opacity-10">
+                                    <Trophy className="size-24 text-amber-500" />
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Remaining prizes (non-positioned or if no podium) */}
+                      {prizeItems.filter(p => !p.position || prizeItems.filter(pp => pp.position).length < 2).length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {prizeItems
+                            .filter(p => !p.position || prizeItems.filter(pp => pp.position).length < 2)
+                            .map((prize, idx) => (
+                            <motion.div
+                              key={idx}
+                              initial={{ opacity: 0, x: idx % 2 === 0 ? -10 : 10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.35 + idx * 0.05 }}
+                            >
+                              <div className={`${prize.bgColor} rounded-xl p-4 border ${prize.borderColor} flex items-start gap-3 hover:shadow-md transition-shadow`}>
+                                <div className={`${prize.iconBg} w-10 h-10 rounded-lg flex items-center justify-center ${prize.accentColor} shrink-0`}>
+                                  {prize.icon}
+                                </div>
+                                <p className={`text-sm font-medium ${prize.textColor} leading-snug`}>
+                                  {prize.label}
+                                </p>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  ) : (
+                    /* No positions detected — show as elegant list */
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {prizeItems.map((prize, idx) => (
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, x: idx % 2 === 0 ? -10 : 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.3 + idx * 0.05 }}
+                        >
+                          <div className={`${prize.bgColor} rounded-xl p-4 border ${prize.borderColor} flex items-start gap-3 hover:shadow-md transition-shadow`}>
+                            <div className={`${prize.iconBg} w-10 h-10 rounded-lg flex items-center justify-center ${prize.accentColor} shrink-0`}>
+                              {prize.icon}
+                            </div>
+                            <p className={`text-sm font-medium ${prize.textColor} leading-snug`}>
+                              {prize.label}
+                            </p>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </motion.section>
               )}
 
@@ -348,8 +703,8 @@ export function EventDetailPage({ event, categories }: EventDetailPageProps) {
                     <BookOpen className="size-5 text-red-500" />
                     Reglas y Reglamento
                   </h2>
-                  <div className="bg-gray-50 rounded-xl p-5 border">
-                    <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-line">
+                  <div className="bg-gradient-to-br from-white to-gray-50/80 rounded-2xl p-6 border border-gray-200/50">
+                    <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-line leading-relaxed">
                       {event.rules}
                     </div>
                   </div>
@@ -367,8 +722,8 @@ export function EventDetailPage({ event, categories }: EventDetailPageProps) {
                     <Star className="size-5 text-red-500" />
                     Patrocinadores
                   </h2>
-                  <div className="bg-white rounded-xl p-5 border">
-                    <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-line">
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-2xl p-6 border border-gray-200/50">
+                    <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-line leading-relaxed">
                       {event.sponsors}
                     </div>
                   </div>
