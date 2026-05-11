@@ -34,7 +34,13 @@ export function Header() {
   const handleNavClick = (href: string, anchor?: string) => {
     setMobileOpen(false);
 
-    // Direct page route (e.g., /tienda, /resultados)
+    // External links: open in new tab
+    if (href.startsWith("http")) {
+      window.open(href, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    // Direct page route (e.g., /tienda)
     if (!anchor) {
       router.push(href);
       return;
