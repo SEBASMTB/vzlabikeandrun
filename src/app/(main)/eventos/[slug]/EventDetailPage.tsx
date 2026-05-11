@@ -270,32 +270,34 @@ export function EventDetailPage({ event, categories }: EventDetailPageProps) {
                 </div>
               </motion.section>
 
-              {/* Categories */}
-              <motion.section
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-4">
-                  <Tag className="size-5 text-red-500" />
-                  Categorías por Edad
-                </h2>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Las categorías se asignan automáticamente al momento de la inscripción según la disciplina{" "}
-                  <strong>{sportTypeLabels[event.sportType] || event.category}</strong>.
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {categories.map((cat) => (
-                    <div
-                      key={cat.value}
-                      className="bg-white rounded-xl border p-3 text-center hover:border-red-300 transition-colors"
-                    >
-                      <p className="text-[10px] font-mono text-red-500 font-bold">{cat.value}</p>
-                      <p className="font-semibold text-sm text-foreground mt-0.5">{cat.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </motion.section>
+              {/* Categories — only show if admin explicitly created them */}
+              {categories.length > 0 && (
+                <motion.section
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-4">
+                    <Tag className="size-5 text-red-500" />
+                    Categorías por Edad
+                  </h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Las categorías se asignan automáticamente al momento de la inscripción según la disciplina{" "}
+                    <strong>{sportTypeLabels[event.sportType] || event.category}</strong>.
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {categories.map((cat) => (
+                      <div
+                        key={cat.value}
+                        className="bg-white rounded-xl border p-3 text-center hover:border-red-300 transition-colors"
+                      >
+                        <p className="text-[10px] font-mono text-red-500 font-bold">{cat.value}</p>
+                        <p className="font-semibold text-sm text-foreground mt-0.5">{cat.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </motion.section>
+              )}
 
               {/* Prizes */}
               {event.prizes && (

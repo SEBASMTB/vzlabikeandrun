@@ -34,17 +34,15 @@ export async function GET(
       ? event.openCategories.split(",").map(s => s.trim()).filter(Boolean)
       : [];
 
-    let categories: CategoryOption[];
+    let categories: CategoryOption[] = [];
 
     if (openCatsArray.length > 0) {
       // Match predefined categories by value
       categories = allSportCategories.filter(cat => openCatsArray.includes(cat.value));
 
       // Handle old-format categories (without -M/-F suffix) for backward compatibility
-      // e.g., "RUN-JUV" -> try to match "RUN-JUV-M" if "RUN-JUV" not found directly
       for (const catValue of openCatsArray) {
         if (!categories.find(c => c.value === catValue) && !catValue.startsWith("CUSTOM-")) {
-          // Try matching with -M suffix (default to male for old categories)
           const maleVariant = allSportCategories.find(c => c.value === `${catValue}-M`);
           if (maleVariant) {
             categories.push(maleVariant);
@@ -52,16 +50,13 @@ export async function GET(
         }
       }
 
-      // Add custom categories (CUSTOM-*) that are in openCategories
+      // Add custom categories (CUSTOM-*)
       for (const catValue of openCatsArray) {
         if (catValue.startsWith("CUSTOM-") && !categories.find(c => c.value === catValue)) {
-          // Parse custom category: CUSTOM-GENERAL_M -> "General Varones"
           const parts = catValue.replace("CUSTOM-", "").split("-");
-          const genderSuffix = parts.pop(); // Last part is M or F
+          const genderSuffix = parts.pop();
           const name = parts.join(" ").replace(/_/g, " ");
-
           const genderLabel = genderSuffix === "F" ? "Damas" : "Varones";
-
           categories.push({
             value: catValue,
             label: `${name} - ${genderLabel}`,
@@ -71,9 +66,6 @@ export async function GET(
           });
         }
       }
-    } else {
-      // No open categories configured, show all predefined
-      categories = allSportCategories;
     }
 
     return NextResponse.json({

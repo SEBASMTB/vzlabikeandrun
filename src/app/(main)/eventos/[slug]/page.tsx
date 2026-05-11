@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
-import { getCategoriesForSport, parseEventCategories } from "@/lib/categories";
+import { type CategoryOption, parseEventCategories } from "@/lib/categories";
 import { EventDetailPage } from "./EventDetailPage";
 
 interface PageProps {
@@ -26,8 +26,12 @@ export default async function EventPage({ params }: PageProps) {
     notFound();
   }
 
-  // Use event-specific categories from DB when available, otherwise fallback to sport defaults
-  const categories = parseEventCategories(event.categories, event.sportType || "running");
+  // Only show categories if the admin explicitly set them for this event
+  // Do NOT auto-generate default categories for the detail page
+  let categories: CategoryOption[] = [];
+  if (event.categories && event.categories.trim()) {
+    categories = parseEventCategories(event.categories, event.sportType || "running");
+  }
 
   return (
     <EventDetailPage

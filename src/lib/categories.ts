@@ -699,8 +699,9 @@ export function parseEventCategories(
   categoriesStr: string | null | undefined,
   sportType: string = "running"
 ): CategoryOption[] {
+  // If no categories string, return empty array — no auto-fallback
   if (!categoriesStr || !categoriesStr.trim()) {
-    return getCategoriesForSport(sportType, "10");
+    return [];
   }
 
   try {
@@ -721,7 +722,7 @@ export function parseEventCategories(
 
   const values = categoriesStr.split(",").map((s) => s.trim()).filter(Boolean);
   if (values.length === 0) {
-    return getCategoriesForSport(sportType, "10");
+    return [];
   }
 
   const allPresets = getAllCategories();
@@ -731,7 +732,8 @@ export function parseEventCategories(
     if (found) matched.push(found);
   }
 
-  return matched.length > 0 ? matched : getCategoriesForSport(sportType, "10");
+  // If CSV values didn't match any preset, return empty (not a fallback)
+  return matched.length > 0 ? matched : [];
 }
 
 export function serializeEventCategories(categories: CategoryOption[]): string {
