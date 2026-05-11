@@ -8,7 +8,7 @@ FECHA: Mayo 2026
 ============================================================
  1. PLATAFORMA DE DESPLIEGUE - VERCEL
 ============================================================
-URL del proyecto: https://my-project-eosin-nine.vercel.app
+URL del proyecto: https://my-project-venezuelabike-9338-venezuelabike-9338s-projects.vercel.app
 Panel de Vercel:  https://vercel.com/dashboard
 
 Token de API (para deploy desde terminal):
@@ -31,7 +31,7 @@ Si necesitas acceder directo, revisa las variables de entorno en:
 ============================================================
  3. PANEL DE ADMINISTRACIÓN
 ============================================================
-URL: https://my-project-eosin-nine.vercel.app/admin
+URL: https://my-project-venezuelabike-9338-venezuelabike-9338s-projects.vercel.app/admin
 Usuario: admin
 Contraseña: vzlabike2024
 

@@ -299,16 +299,19 @@ export default function AdminEventosPage() {
       sportType,
       category: sportType,
       categoryInterval: prev.categoryInterval || "10",
+      // MTB + Ruta: dejar categorías en BLANCO para que el admin las cree manualmente
+      categories: sportType === "mtb-ruta" ? "" : prev.categories,
     }));
-    // Auto-load default preset categories for this sport type
-    const presets = getCategoryPresets(sportType);
-    if (presets.length > 0) {
-      // Use the first preset (event-specific if available, otherwise general)
-      const defaultPreset = presets[0];
-      setFormData((prev) => ({
-        ...prev,
-        categories: serializeEventCategories(defaultPreset.categories),
-      }));
+    // Auto-load default preset categories for this sport type (excepto mtb-ruta)
+    if (sportType !== "mtb-ruta") {
+      const presets = getCategoryPresets(sportType);
+      if (presets.length > 0) {
+        const defaultPreset = presets[0];
+        setFormData((prev) => ({
+          ...prev,
+          categories: serializeEventCategories(defaultPreset.categories),
+        }));
+      }
     }
   };
 
@@ -957,12 +960,23 @@ export default function AdminEventosPage() {
             )}
 
             {/* Preset categories info */}
-            <div className="sm:col-span-2 text-xs text-muted-foreground">
-              Deporte: <span className="font-semibold">{sportTypeLabels[formData.sportType] || formData.sportType}</span>
-              {" — "}{selectedCats.length} categoría(s) seleccionada(s) de {groupedCats.male.length + groupedCats.female.length + groupedCats.open.length} disponibles
-              <br />
-              Haz clic en las categorías para activarlas, o agrega categorías personalizadas abajo.
-            </div>
+            {formData.sportType === "mtb-ruta" ? (
+              <div className="sm:col-span-2 border-2 border-dashed border-blue-300 rounded-lg p-4 text-center bg-blue-50/50">
+                <p className="text-sm font-semibold text-blue-800 mb-1">
+                  MTB + Ruta (Combinado) — Categorías en Blanco
+                </p>
+                <p className="text-xs text-blue-600">
+                  No hay categorías predefinidas para este tipo de evento. Usa el formulario de abajo para crear tus categorías personalizadas una por una.
+                </p>
+              </div>
+            ) : (
+              <div className="sm:col-span-2 text-xs text-muted-foreground">
+                Deporte: <span className="font-semibold">{sportTypeLabels[formData.sportType] || formData.sportType}</span>
+                {" — "}{selectedCats.length} categoría(s) seleccionada(s) de {groupedCats.male.length + groupedCats.female.length + groupedCats.open.length} disponibles
+                <br />
+                Haz clic en las categorías para activarlas, o agrega categorías personalizadas abajo.
+              </div>
+            )}
 
             {/* Male Categories */}
             {groupedCats.male.length > 0 && (
