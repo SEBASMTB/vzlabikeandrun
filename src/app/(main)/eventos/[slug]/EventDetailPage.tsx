@@ -34,6 +34,11 @@ import {
   Heart,
   Target,
   Camera,
+  BarChart3,
+  Radio,
+  Zap,
+  Activity,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -730,6 +735,106 @@ export function EventDetailPage({ event, categories }: EventDetailPageProps) {
                   </div>
                 </motion.section>
               )}
+
+              {/* Resultados Section */}
+              <motion.section
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45 }}
+              >
+                <h2 className="text-xl font-bold text-foreground flex items-center gap-2 mb-4">
+                  <BarChart3 className="size-5 text-red-500" />
+                  Resultados del Evento
+                </h2>
+                <div className="relative overflow-hidden rounded-2xl border border-white/10">
+                  {/* Dark gradient background matching VBRWorks portal */}
+                  <div className="bg-gradient-to-br from-[#0B0D17] via-[#111827] to-[#0B0D17] p-6 sm:p-8">
+                    {/* Subtle grid pattern overlay */}
+                    <div className="absolute inset-0 opacity-[0.03]" style={{
+                      backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)',
+                      backgroundSize: '40px 40px'
+                    }} />
+
+                    <div className="relative z-10">
+                      {/* Header with branding */}
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                            <Trophy className="size-5 text-red-400" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-white font-bold text-sm tracking-wide">VBRWorks</span>
+                              <span className="text-white/30 font-light text-xs">®</span>
+                            </div>
+                            <p className="text-white/40 text-xs">Plataforma de Resultados</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
+                          <Activity className="size-3 text-green-400 animate-pulse" />
+                          <span className="text-[10px] font-medium text-green-400">EN LÍNEA</span>
+                        </div>
+                      </div>
+
+                      {/* Event info strip */}
+                      <div className="flex flex-wrap items-center gap-3 mb-6 text-xs">
+                        <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
+                          <Calendar className="size-3.5 text-white/40" />
+                          <span className="text-white/60">{formatDateFull(event.date)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
+                          <MapPin className="size-3.5 text-white/40" />
+                          <span className="text-white/60">{event.location}</span>
+                        </div>
+                        {event.sportType && (
+                          <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
+                            <Bike className="size-3.5 text-white/40" />
+                            <span className="text-white/60">{event.sportType === 'cycling' ? 'Ciclismo' : event.sportType === 'running' ? 'Running' : 'Multideporte'}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Feature cards */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                        {[
+                          { icon: <Radio className="size-4" />, label: 'Cronometraje RFID', desc: 'Tiempos oficiales' },
+                          { icon: <Zap className="size-4" />, label: 'En Vivo', desc: 'Tiempo real' },
+                          { icon: <BarChart3 className="size-4" />, label: 'Estadísticas', desc: 'Data detallada' },
+                          { icon: <Users className="size-4" />, label: 'Clasificaciones', desc: 'Posiciones' },
+                        ].map((f) => (
+                          <div
+                            key={f.label}
+                            className="bg-white/[0.04] border border-white/[0.08] rounded-xl p-3 text-center hover:bg-white/[0.07] hover:border-white/[0.15] transition-all duration-300 group"
+                          >
+                            <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/10 mb-2 group-hover:bg-red-500/20 transition-colors">
+                              <span className="text-red-400">{f.icon}</span>
+                            </div>
+                            <p className="text-white text-xs font-medium mb-0.5">{f.label}</p>
+                            <p className="text-white/30 text-[10px]">{f.desc}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* CTA Button */}
+                      <div className="flex flex-col sm:flex-row items-center gap-3">
+                        <a
+                          href="https://vbr-results-portal.vercel.app"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-semibold text-sm rounded-xl px-6 py-3 transition-all duration-300 hover:shadow-lg hover:shadow-red-500/25 hover:-translate-y-0.5"
+                        >
+                          <BarChart3 className="size-4" />
+                          Ver Resultados
+                          <ExternalLink className="size-3.5" />
+                        </a>
+                        <p className="text-white/25 text-[11px]">
+                          Resultados procesados por VBRWorks®
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.section>
             </div>
 
             {/* Right Column - Registration Sidebar */}
