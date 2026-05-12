@@ -171,7 +171,7 @@ export function PlatformSection() {
               <div className="flex-1 flex justify-center">
                 <div className="bg-white/5 rounded-lg px-4 py-1.5 text-xs text-white/40 flex items-center gap-2 border border-white/5">
                   <div className="w-2 h-2 rounded-full bg-green-400/60" />
-                  app.vzlabikeandrun.com/dashboard
+                  vbr-results-portal.vercel.app
                 </div>
               </div>
               <div className="flex gap-2">
@@ -215,9 +215,9 @@ export function PlatformSection() {
                     <Wifi className="size-4 text-green-400" />
                     <span className="text-[10px] text-white/40 uppercase tracking-wider">Lecturas</span>
                   </div>
-                  <p className="text-2xl font-bold text-white">98.5<span className="text-sm text-white/60">%</span></p>
+                  <p className="text-2xl font-bold text-white">99.9<span className="text-sm text-white/60">%</span></p>
                   <p className="text-[10px] text-green-400 mt-1 flex items-center gap-1">
-                    <TrendingUp className="size-3" /> Excelente
+                    <TrendingUp className="size-3" /> Precisión total
                   </p>
                 </div>
                 <div className="bg-white/5 rounded-xl p-4 border border-white/5">
