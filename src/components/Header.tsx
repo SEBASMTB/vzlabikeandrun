@@ -13,7 +13,7 @@ const navLinks = [
   { label: "Servicios", href: "/", anchor: "#servicios" },
   { label: "Eventos", href: "/", anchor: "#eventos" },
   { label: "Tienda", href: "/tienda" },
-  { label: "Resultados", href: "https://vbr-results-portal.vercel.app" },
+  { label: "Resultados", href: "https://vbr-results-portal.vercel.app", external: true },
   { label: "Contacto", href: "/", anchor: "#contacto" },
 ];
 
@@ -105,7 +105,13 @@ export function Header() {
                   <a
                     key={link.label}
                     href={link.anchor || link.href}
+                    target={"external" in link && link.external ? "_blank" : undefined}
+                    rel={"external" in link && link.external ? "noopener noreferrer" : undefined}
                     onClick={(e) => {
+                      if ("external" in link && link.external) {
+                        window.open(link.href, "_blank", "noopener,noreferrer");
+                        return;
+                      }
                       e.preventDefault();
                       handleNavClick(link.href, link.anchor);
                     }}
@@ -183,7 +189,14 @@ export function Header() {
                     <a
                       key={link.label}
                       href={link.anchor || link.href}
+                      target={"external" in link && link.external ? "_blank" : undefined}
+                      rel={"external" in link && link.external ? "noopener noreferrer" : undefined}
                       onClick={(e) => {
+                        if ("external" in link && link.external) {
+                          window.open(link.href, "_blank", "noopener,noreferrer");
+                          setMobileOpen(false);
+                          return;
+                        }
                         e.preventDefault();
                         handleNavClick(link.href, link.anchor);
                       }}

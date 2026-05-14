@@ -50,6 +50,10 @@ test
 prompt
 
 server.log
+
+# Database files (local only, not tracked)
+/db/
+
 # Skills directory
 /skills/
 .env*.local
