@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { type CategoryOption, parseEventCategories } from "@/lib/categories";
 import { EventDetailPage } from "./EventDetailPage";
@@ -12,13 +12,15 @@ export default async function EventPage({ params }: PageProps) {
 
   let event;
   try {
-    event = await db.event.findUnique({
+    const prisma = await getDb();
+    event = await prisma.event.findUnique({
       where: { slug },
       include: {
         _count: { select: { registrations: true } },
       },
     });
-  } catch {
+  } catch (err) {
+    console.error("[EventPage] Error fetching event:", err);
     notFound();
   }
 
