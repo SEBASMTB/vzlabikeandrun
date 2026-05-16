@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
-import { getCategoriesForSport, CategoryOption } from "@/lib/categories";
+import { getCategoriesForSport, parseEventCategories, CategoryOption } from "@/lib/categories";
 
 export async function GET(
   _request: NextRequest,
@@ -13,9 +13,10 @@ export async function GET(
       select: {
         sportType: true,
         ageCalcMode: true,
+        categoryInterval: true,
         date: true,
         title: true,
-        openCategories: true,
+        categories: true,
       },
     });
 
@@ -26,46 +27,17 @@ export async function GET(
       );
     }
 
-    // Get predefined categories for this sport (now includes gender info)
-    const allSportCategories = getCategoriesForSport(event.sportType || "running");
-
-    // Parse open categories from event config
-    const openCatsArray = event.openCategories
-      ? event.openCategories.split(",").map(s => s.trim()).filter(Boolean)
-      : [];
-
     let categories: CategoryOption[] = [];
 
-    if (openCatsArray.length > 0) {
-      // Match predefined categories by value
-      categories = allSportCategories.filter(cat => openCatsArray.includes(cat.value));
+    // Parse categories from the event's categories JSON field
+    if (event.categories && event.categories.trim()) {
+      categories = parseEventCategories(event.categories, event.sportType || "running");
+    }
 
-      // Handle old-format categories (without -M/-F suffix) for backward compatibility
-      for (const catValue of openCatsArray) {
-        if (!categories.find(c => c.value === catValue) && !catValue.startsWith("CUSTOM-")) {
-          const maleVariant = allSportCategories.find(c => c.value === `${catValue}-M`);
-          if (maleVariant) {
-            categories.push(maleVariant);
-          }
-        }
-      }
-
-      // Add custom categories (CUSTOM-*)
-      for (const catValue of openCatsArray) {
-        if (catValue.startsWith("CUSTOM-") && !categories.find(c => c.value === catValue)) {
-          const parts = catValue.replace("CUSTOM-", "").split("-");
-          const genderSuffix = parts.pop();
-          const name = parts.join(" ").replace(/_/g, " ");
-          const genderLabel = genderSuffix === "F" ? "Damas" : "Varones";
-          categories.push({
-            value: catValue,
-            label: `${name} - ${genderLabel}`,
-            minAge: 0,
-            maxAge: 999,
-            gender: genderSuffix === "F" ? "F" : genderSuffix === "M" ? "M" : undefined,
-          });
-        }
-      }
+    // Fallback: generate categories based on sport type and interval
+    if (categories.length === 0) {
+      const interval = (event.categoryInterval === "5" ? "5" : "10") as "5" | "10";
+      categories = getCategoriesForSport(event.sportType || "running", interval);
     }
 
     return NextResponse.json({
@@ -74,7 +46,8 @@ export async function GET(
       sportType: event.sportType,
       eventDate: event.date,
     });
-  } catch {
+  } catch (err) {
+    console.error("[categories] Error:", err);
     return NextResponse.json(
       { error: "Error al obtener categorías" },
       { status: 500 }
