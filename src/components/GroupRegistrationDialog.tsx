@@ -657,8 +657,12 @@ export function GroupRegistrationDialog({
 
   const currentPayment = paymentMethods.find((p) => p.id === selectedPayment);
 
-  // Calculate total price including extras
+  // Calculate total price including shirt and extras
   const baseTotalPrice = (event?.price ?? 0) * participants.length;
+  const shirtGroupTotal = participants.reduce((sum, p) => {
+    if (p.wantsShirt === "true" && event?.shirtIncluded === false) return sum + (event?.shirtPrice || 0);
+    return sum;
+  }, 0);
   const extrasGroupTotal = participants.reduce((sum, p) => {
     const pExtras = participantExtras[p.id] || {};
     return sum + eventExtras.reduce((s, e) => {
@@ -666,7 +670,7 @@ export function GroupRegistrationDialog({
       return s;
     }, 0);
   }, 0);
-  const totalPrice = baseTotalPrice + extrasGroupTotal;
+  const totalPrice = baseTotalPrice + shirtGroupTotal + extrasGroupTotal;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>

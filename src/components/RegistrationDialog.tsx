@@ -443,13 +443,16 @@ export function RegistrationDialog({
 
   const currentPayment = paymentMethods.find((p) => p.id === selectedPayment);
 
+  // Calculate shirt cost (only if shirt is optional and user wants it)
+  const shirtCost = (wantsShirt && event?.shirtIncluded === false) ? (event?.shirtPrice || 0) : 0;
+
   // Calculate extras total
   const extrasTotal = eventExtras.reduce((sum, extra) => {
     const sel = selectedExtras[extra.id];
     if (sel && sel.selected && !extra.included) return sum + extra.price;
     return sum;
   }, 0);
-  const totalWithExtras = (event?.price ?? 0) + extrasTotal;
+  const totalWithExtras = (event?.price ?? 0) + shirtCost + extrasTotal;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
