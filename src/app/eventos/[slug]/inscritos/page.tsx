@@ -9,7 +9,6 @@ import {
   Trophy,
   Search,
   Filter,
-  Download,
   ChevronDown,
   ChevronUp,
   Calendar,
@@ -66,6 +65,7 @@ export default function InscritosPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [genderFilter, setGenderFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
   >({});
@@ -138,7 +138,10 @@ export default function InscritosPage() {
 
           return { ...cat, registrations: regs, count: regs.length };
         })
-        .filter((cat) => cat.count > 0)
+        .filter((cat) => {
+          if (categoryFilter !== "all" && cat.category !== categoryFilter) return false;
+          return cat.count > 0;
+        })
     : [];
 
   const totalFiltered = filteredCategories.reduce(
@@ -338,19 +341,46 @@ export default function InscritosPage() {
                 </Button>
               </div>
 
-              {/* Export */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportCSV}
-                className="text-xs"
-              >
-                <Download className="size-3 mr-1" />
-                Exportar CSV
-              </Button>
+              {/* Category Filter */}
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <Trophy className="size-4 mr-2" />
+                  <SelectValue placeholder="Categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las categorías</SelectItem>
+                  {data.categories.map((cat) => (
+                    <SelectItem key={cat.category} value={cat.category}>
+                      {cat.category} ({cat.count})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Expand/Collapse */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={expandAll}
+                  className="text-xs"
+                >
+                  <ChevronDown className="size-3 mr-1" />
+                  Expandir
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={collapseAll}
+                  className="text-xs"
+                >
+                  <ChevronUp className="size-3 mr-1" />
+                  Colapsar
+                </Button>
+              </div>
             </div>
 
-            {searchTerm || genderFilter !== "all" ? (
+            {searchTerm || genderFilter !== "all" || categoryFilter !== "all" ? (
               <p className="text-xs text-muted-foreground mt-2">
                 Mostrando {totalFiltered} de {data.totalRegistrations} inscritos
               </p>

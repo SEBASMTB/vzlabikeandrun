@@ -44,6 +44,7 @@ import {
   Heart,
   Clock,
   Mail,
+  Shirt,
 } from "lucide-react";
 import { LiabilityWaiver } from "./LiabilityWaiver";
 import { calculateAge, parseEventCategories, getEligibleCategories, getMTBCategoryOptions } from "@/lib/categories";
@@ -167,7 +168,8 @@ export function RegistrationDialog({
   const [eligibleCategories, setEligibleCategories] = useState<Array<{ value: string; label: string }>>([]);
   const [categoryMessage, setCategoryMessage] = useState<string>("");
   const [mtbProfile, setMTBProfile] = useState<"competitivo" | "recreativo" | "">("");
-  const [registrationSuccess, setRegistrationSuccess] = useState<{bibNumber: number; payLabel: string} | null>(null);
+  const [wantsShirt, setWantsShirt] = useState(true);
+  const [registrationSuccess, setRegistrationSuccess] = useState<{bibNumber: number; payLabel: string; totalPaid: number} | null>(null);
   const { toast } = useToast();
 
   const personalForm = useForm<PersonalInfo>({
@@ -284,6 +286,7 @@ export function RegistrationDialog({
     setAutoCategory("");
     setAutoAge(null);
     setMTBProfile("");
+    setWantsShirt(true);
     setRegistrationSuccess(null);
   };
 
@@ -295,7 +298,18 @@ export function RegistrationDialog({
   const handleNext = () => {
     if (currentStep === 0) {
       personalForm.trigger().then((valid) => {
-        if (valid) setCurrentStep(1);
+        if (valid) {
+          // Validate shirt size if shirt is wanted
+          if (event?.hasShirt !== false && wantsShirt && !personalForm.getValues("shirtSize")) {
+            toast({
+              title: "Selecciona la talla de la franela",
+              description: "Debes elegir una talla para continuar.",
+              variant: "destructive",
+            });
+            return;
+          }
+          setCurrentStep(1);
+        }
       });
     } else if (currentStep === 1) {
       // For MTB, category is auto-assigned — just validate it's set
@@ -346,6 +360,7 @@ export function RegistrationDialog({
           paymentRef: paymentRef,
           waiverAccepted: true,
           mtbProfile: event?.sportType === "mtb" ? mtbProfile : undefined,
+          wantsShirt: wantsShirt,
         }),
       });
 
@@ -353,7 +368,8 @@ export function RegistrationDialog({
 
       if (res.ok) {
         const payLabel = paymentMethods.find((p) => p.id === selectedPayment)?.label || "pago";
-        setRegistrationSuccess({ bibNumber: data.bibNumber, payLabel });
+        const totalPaid = (event?.price || 0) + (wantsShirt && event?.shirtIncluded === false ? (event?.shirtPrice || 0) : 0);
+        setRegistrationSuccess({ bibNumber: data.bibNumber, payLabel, totalPaid });
       } else {
         toast({
           title: "Error en la inscripción",
@@ -580,9 +596,11 @@ export function RegistrationDialog({
                     : "Coloca tu cédula y buscaremos tus datos de inscripciones anteriores."}
                 </p>
                 {personalForm.formState.errors.idNumber && (
-                  <p className="text-sm text-destructive">
-                    {personalForm.formState.errors.idNumber.message}
-                  </p>
+                  <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
+                    <p className="text-sm font-semibold text-red-700">
+                      {personalForm.formState.errors.idNumber.message}
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -595,9 +613,11 @@ export function RegistrationDialog({
                     {...personalForm.register("firstName")}
                   />
                   {personalForm.formState.errors.firstName && (
-                    <p className="text-sm text-destructive">
-                      {personalForm.formState.errors.firstName.message}
-                    </p>
+                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
+                      <p className="text-sm font-semibold text-red-700">
+                        {personalForm.formState.errors.firstName.message}
+                      </p>
+                    </div>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -608,9 +628,11 @@ export function RegistrationDialog({
                     {...personalForm.register("lastName")}
                   />
                   {personalForm.formState.errors.lastName && (
-                    <p className="text-sm text-destructive">
-                      {personalForm.formState.errors.lastName.message}
-                    </p>
+                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
+                      <p className="text-sm font-semibold text-red-700">
+                        {personalForm.formState.errors.lastName.message}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -625,9 +647,11 @@ export function RegistrationDialog({
                     {...personalForm.register("email")}
                   />
                   {personalForm.formState.errors.email && (
-                    <p className="text-sm text-destructive">
-                      {personalForm.formState.errors.email.message}
-                    </p>
+                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
+                      <p className="text-sm font-semibold text-red-700">
+                        {personalForm.formState.errors.email.message}
+                      </p>
+                    </div>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -639,9 +663,11 @@ export function RegistrationDialog({
                     {...personalForm.register("phone")}
                   />
                   {personalForm.formState.errors.phone && (
-                    <p className="text-sm text-destructive">
-                      {personalForm.formState.errors.phone.message}
-                    </p>
+                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
+                      <p className="text-sm font-semibold text-red-700">
+                        {personalForm.formState.errors.phone.message}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -655,9 +681,11 @@ export function RegistrationDialog({
                     {...personalForm.register("dateOfBirth")}
                   />
                   {personalForm.formState.errors.dateOfBirth && (
-                    <p className="text-sm text-destructive">
-                      {personalForm.formState.errors.dateOfBirth.message}
-                    </p>
+                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
+                      <p className="text-sm font-semibold text-red-700">
+                        {personalForm.formState.errors.dateOfBirth.message}
+                      </p>
+                    </div>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -679,35 +707,105 @@ export function RegistrationDialog({
                     </SelectContent>
                   </Select>
                   {personalForm.formState.errors.gender && (
-                    <p className="text-sm text-destructive">
-                      {personalForm.formState.errors.gender.message}
-                    </p>
+                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
+                      <p className="text-sm font-semibold text-red-700">
+                        {personalForm.formState.errors.gender.message}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
 
-              {/* Shirt Size - only show if event has shirt */}
+              {/* Shirt / Franela */}
               {event?.hasShirt !== false && (
-              <div className="space-y-2">
-                <Label htmlFor="shirtSize">Talla de Camiseta/Franela *</Label>
-                <Select
-                  value={personalForm.watch("shirtSize")}
-                  onValueChange={(val) =>
-                    personalForm.setValue("shirtSize", val)
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Seleccionar talla" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="S">S</SelectItem>
-                    <SelectItem value="M">M</SelectItem>
-                    <SelectItem value="L">L</SelectItem>
-                    <SelectItem value="XL">XL</SelectItem>
-                    <SelectItem value="XXL">XXL</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Este evento incluye franela/camiseta</p>
+              <div className="space-y-3">
+                {event?.shirtIncluded === false ? (
+                  /* Shirt is OPTIONAL with extra cost */
+                  <>
+                    <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-amber-800">
+                            Franela/Camiseta - Opcional
+                          </p>
+                          <p className="text-xs text-amber-600 mt-1">
+                            La franela tiene un costo adicional de <strong>${event?.shirtPrice || 0} USD</strong>
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => { setWantsShirt(true); personalForm.setValue("shirtSize", "M"); }}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                              wantsShirt
+                                ? "bg-green-500 text-white border-2 border-green-600"
+                                : "bg-white text-gray-600 border-2 border-gray-300 hover:border-green-400"
+                            }`}
+                          >
+                            Si
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setWantsShirt(false); personalForm.setValue("shirtSize", ""); }}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                              !wantsShirt
+                                ? "bg-red-500 text-white border-2 border-red-600"
+                                : "bg-white text-gray-600 border-2 border-gray-300 hover:border-red-400"
+                            }`}
+                          >
+                            No
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {wantsShirt && (
+                      <div className="space-y-2">
+                        <Label htmlFor="shirtSize">Talla de Camiseta/Franela *</Label>
+                        <Select
+                          value={personalForm.watch("shirtSize")}
+                          onValueChange={(val) =>
+                            personalForm.setValue("shirtSize", val)
+                          }
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Seleccionar talla" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="S">S</SelectItem>
+                            <SelectItem value="M">M</SelectItem>
+                            <SelectItem value="L">L</SelectItem>
+                            <SelectItem value="XL">XL</SelectItem>
+                            <SelectItem value="XXL">XXL</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* Shirt is INCLUDED in the price */
+                  <div className="space-y-2">
+                    <Label htmlFor="shirtSize">Talla de Camiseta/Franela *</Label>
+                    <Select
+                      value={personalForm.watch("shirtSize")}
+                      onValueChange={(val) =>
+                        personalForm.setValue("shirtSize", val)
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar talla" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="S">S</SelectItem>
+                        <SelectItem value="M">M</SelectItem>
+                        <SelectItem value="L">L</SelectItem>
+                        <SelectItem value="XL">XL</SelectItem>
+                        <SelectItem value="XXL">XXL</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">Este evento incluye franela/camiseta</p>
+                  </div>
+                )}
               </div>
               )}
             </motion.div>
@@ -858,9 +956,11 @@ export function RegistrationDialog({
                     {...emergencyForm.register("emergencyContact")}
                   />
                   {emergencyForm.formState.errors.emergencyContact && (
-                    <p className="text-sm text-destructive">
-                      {emergencyForm.formState.errors.emergencyContact.message}
-                    </p>
+                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
+                      <p className="text-sm font-semibold text-red-700">
+                        {emergencyForm.formState.errors.emergencyContact.message}
+                      </p>
+                    </div>
                   )}
                 </div>
 
@@ -875,9 +975,11 @@ export function RegistrationDialog({
                     {...emergencyForm.register("emergencyPhone")}
                   />
                   {emergencyForm.formState.errors.emergencyPhone && (
-                    <p className="text-sm text-destructive">
-                      {emergencyForm.formState.errors.emergencyPhone.message}
-                    </p>
+                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
+                      <p className="text-sm font-semibold text-red-700">
+                        {emergencyForm.formState.errors.emergencyPhone.message}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -908,8 +1010,15 @@ export function RegistrationDialog({
               {/* Amount to pay */}
               <div className="gradient-primary rounded-lg p-4 text-white text-center">
                 <p className="text-sm opacity-90">Monto a pagar</p>
-                <p className="text-3xl font-bold">${event?.price} USD</p>
+                <p className="text-3xl font-bold">
+                  ${(event?.price || 0) + (wantsShirt && event?.shirtIncluded === false ? (event?.shirtPrice || 0) : 0)} USD
+                </p>
                 <p className="text-sm opacity-80">{event?.title}</p>
+                {wantsShirt && event?.shirtIncluded === false && event?.shirtPrice ? (
+                  <div className="mt-2 pt-2 border-t border-white/20 text-xs opacity-90">
+                    <span>Inscripción: ${event?.price} + Franela: ${event?.shirtPrice}</span>
+                  </div>
+                ) : null}
               </div>
 
               {/* Payment method selection */}
@@ -1004,7 +1113,15 @@ export function RegistrationDialog({
                     <strong>Categoría:</strong> {raceForm.getValues().category}
                   </p>
                   <p>
-                    <strong>Pago:</strong> ${event?.price} USD via{" "}
+                    <strong>Inscripción:</strong> ${event?.price} USD
+                  </p>
+                  {wantsShirt && event?.shirtIncluded === false && event?.shirtPrice ? (
+                    <p>
+                      <strong>Franela:</strong> ${event?.shirtPrice} USD
+                    </p>
+                  ) : null}
+                  <p>
+                    <strong>Total:</strong> ${(event?.price || 0) + (wantsShirt && event?.shirtIncluded === false ? (event?.shirtPrice || 0) : 0)} USD via{" "}
                     {currentPayment?.label}
                   </p>
                 </div>

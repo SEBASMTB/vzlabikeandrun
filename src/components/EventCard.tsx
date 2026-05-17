@@ -24,6 +24,8 @@ export interface EventCardProps {
   ageCalcMode?: string;
   categories?: string;
   hasShirt?: boolean;
+  shirtIncluded?: boolean;
+  shirtPrice?: number;
   onRegister?: (event: EventCardProps) => void;
 }
 
@@ -91,6 +93,8 @@ export function EventCard({
     ageCalcMode,
     categories,
     hasShirt,
+    shirtIncluded,
+    shirtPrice,
   };
 
   return (

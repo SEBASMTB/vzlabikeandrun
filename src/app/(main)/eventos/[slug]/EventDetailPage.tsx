@@ -77,6 +77,8 @@ interface EventData {
   categoryInterval: number;
   registrationCount: number;
   hasShirt: boolean;
+  shirtIncluded: boolean;
+  shirtPrice: number;
   categories: string;
 }
 
@@ -982,6 +984,8 @@ export function EventDetailPage({ event, categories }: EventDetailPageProps) {
           sportType: event.sportType || "running",
           ageCalcMode: event.ageCalcMode || "calendar_year",
           hasShirt: event.hasShirt,
+      shirtIncluded: event.shirtIncluded,
+      shirtPrice: event.shirtPrice,
           categories: event.categories,
         }}
         open={dialogOpen}

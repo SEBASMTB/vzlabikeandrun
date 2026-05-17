@@ -35,6 +35,8 @@ const SEED_EVENTS = [
     ageCalcMode: "event_day",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: true,
+    shirtPrice: 0,
   },
   {
     id: "evt-campana-admirable-001",
@@ -62,6 +64,8 @@ const SEED_EVENTS = [
     ageCalcMode: "calendar_year",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: true,
+    shirtPrice: 0,
   },
   {
     id: "cmouqk7300000peaj68nvak7u",
@@ -89,6 +93,8 @@ const SEED_EVENTS = [
     ageCalcMode: "calendar_year",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: true,
+    shirtPrice: 0,
   },
   {
     id: "cmouqk7320001peaj38mchqx3",
@@ -116,6 +122,8 @@ const SEED_EVENTS = [
     ageCalcMode: "calendar_year",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: false,
+    shirtPrice: 15,
   },
   {
     id: "cmouqk7330002peajacov64kx",
@@ -143,6 +151,8 @@ const SEED_EVENTS = [
     ageCalcMode: "calendar_year",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: true,
+    shirtPrice: 0,
   },
   {
     id: "cmouqk7340003peajm6kd9t8x",
@@ -170,6 +180,8 @@ const SEED_EVENTS = [
     ageCalcMode: "calendar_year",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: true,
+    shirtPrice: 0,
   },
   {
     id: "cmouqk7350004peajb9ekzxqd",
@@ -197,6 +209,8 @@ const SEED_EVENTS = [
     ageCalcMode: "calendar_year",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: false,
+    shirtPrice: 20,
   },
   {
     id: "cmouqk7360005peajp7h5ns41",
@@ -256,6 +270,8 @@ CREATE TABLE IF NOT EXISTS "Event" (
     "ageCalcMode" TEXT NOT NULL DEFAULT 'calendar_year',
     "categoryInterval" TEXT NOT NULL DEFAULT '10',
     "hasShirt" BOOLEAN NOT NULL DEFAULT 1,
+    "shirtIncluded" BOOLEAN NOT NULL DEFAULT 1,
+    "shirtPrice" REAL NOT NULL DEFAULT 0,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
@@ -281,6 +297,7 @@ CREATE TABLE IF NOT EXISTS "Registration" (
     "status" TEXT NOT NULL DEFAULT 'pending',
     "waiverAccepted" BOOLEAN NOT NULL DEFAULT 0,
     "bibNumber" INTEGER,
+    "wantsShirt" BOOLEAN NOT NULL DEFAULT 1,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "mtbProfile" TEXT NOT NULL DEFAULT '',
     FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE
@@ -356,6 +373,8 @@ const EXPECTED_COLUMNS: Record<string, Record<string, string>> = {
     ageCalcMode: "TEXT NOT NULL DEFAULT 'calendar_year'",
     categoryInterval: "TEXT NOT NULL DEFAULT '10'",
     hasShirt: 'BOOLEAN NOT NULL DEFAULT 1',
+    shirtIncluded: 'BOOLEAN NOT NULL DEFAULT 1',
+    shirtPrice: 'REAL NOT NULL DEFAULT 0',
     createdAt: 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
     updatedAt: 'DATETIME NOT NULL',
   },
@@ -379,6 +398,7 @@ const EXPECTED_COLUMNS: Record<string, Record<string, string>> = {
     status: "TEXT NOT NULL DEFAULT 'pending'",
     waiverAccepted: 'BOOLEAN NOT NULL DEFAULT 0',
     bibNumber: 'INTEGER',
+    wantsShirt: 'BOOLEAN NOT NULL DEFAULT 1',
     createdAt: 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
     mtbProfile: "TEXT NOT NULL DEFAULT ''",
   },

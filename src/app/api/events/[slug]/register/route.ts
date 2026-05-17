@@ -63,6 +63,7 @@ export async function POST(
       paymentRef,
       waiverAccepted,
       mtbProfile,
+      wantsShirt,
     } = body;
 
     if (!firstName || !lastName || !email || !phone || !idNumber || !gender || !dateOfBirth || !category) {
@@ -158,6 +159,7 @@ export async function POST(
           paymentRef: paymentRef || "",
           waiverAccepted: waiverAccepted || false,
           status: "pending",
+          wantsShirt: wantsShirt !== undefined ? wantsShirt : true,
         },
       })
     );
