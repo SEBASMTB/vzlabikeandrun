@@ -87,6 +87,17 @@ export async function GET(
         idNumber: true,
         dateOfBirth: true,
         category: true,
+        regExtras: {
+          include: {
+            eventExtra: {
+              select: {
+                name: true,
+                price: true,
+                hasSizes: true,
+              },
+            },
+          },
+        },
       },
     });
 

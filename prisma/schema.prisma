@@ -37,6 +37,7 @@ model Event {
   updatedAt       DateTime        @updatedAt
   registrations   Registration[]
   products        Product[]
+  extras          EventExtra[]
 }
 
 model Registration {
@@ -61,6 +62,30 @@ model Registration {
   waiverAccepted   Boolean  @default(false)
   bibNumber        Int?
   createdAt        DateTime @default(now())
+  regExtras        RegistrationExtra[]
+}
+
+model EventExtra {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id])
+  name      String
+  price     Float    @default(0)
+  hasSizes  Boolean  @default(false)
+  sizes     String   @default("[]")
+  included  Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  regExtras  RegistrationExtra[]
+}
+
+model RegistrationExtra {
+  id              String     @id @default(cuid())
+  registrationId  String
+  registration    Registration @relation(fields: [registrationId], references: [id])
+  eventExtraId    String
+  eventExtra      EventExtra  @relation(fields: [eventExtraId], references: [id])
+  selectedSize    String     @default("")
 }
 
 model Product {

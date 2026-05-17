@@ -49,6 +49,7 @@ export async function POST(
       paymentRef,
       waiverAccepted,
       mtbProfile,
+      extras,
     } = body;
 
     if (!firstName || !lastName || !email || !phone || !idNumber || !gender || !dateOfBirth || !category) {
@@ -146,6 +147,45 @@ export async function POST(
       },
     });
 
+    // Create RegistrationExtra records for each selected extra
+    let extrasTotal = 0;
+    const createdRegExtras: Array<{ extraId: string; name: string; price: number; selectedSize: string }> = [];
+    if (Array.isArray(extras) && extras.length > 0) {
+      for (const extra of extras) {
+        const { extraId, selectedSize } = extra as { extraId: string; selectedSize?: string };
+
+        // Validate the extra exists and belongs to this event
+        const eventExtra = await db.eventExtra.findFirst({
+          where: { id: extraId, eventId: event.id },
+        });
+
+        if (eventExtra) {
+          // Validate size if required
+          if (eventExtra.hasSizes && !selectedSize) {
+            continue; // Skip extras with missing size
+          }
+
+          await db.registrationExtra.create({
+            data: {
+              registrationId: registration.id,
+              eventExtraId: extraId,
+              selectedSize: selectedSize || "",
+            },
+          });
+
+          extrasTotal += eventExtra.price;
+          createdRegExtras.push({
+            extraId: eventExtra.id,
+            name: eventExtra.name,
+            price: eventExtra.price,
+            selectedSize: selectedSize || "",
+          });
+        }
+      }
+    }
+
+    const totalAmount = event.price + extrasTotal;
+
     // Send confirmation email (non-blocking)
     sendPreRegistrationEmail({
       firstName: registration.firstName,
@@ -157,9 +197,20 @@ export async function POST(
       eventDistance: event.distance,
       category: registration.category,
       paymentMethod: registration.paymentMethod,
+      totalAmount,
+      extras: createdRegExtras.map((e) => ({
+        name: e.name,
+        price: e.price,
+        selectedSize: e.selectedSize,
+      })),
     }).catch(() => {});
 
-    return NextResponse.json(registration, { status: 201 });
+    return NextResponse.json({
+      ...registration,
+      extrasTotal,
+      totalAmount,
+      selectedExtras: createdRegExtras,
+    }, { status: 201 });
   } catch {
     return NextResponse.json(
       { error: "Error al procesar inscripción" },

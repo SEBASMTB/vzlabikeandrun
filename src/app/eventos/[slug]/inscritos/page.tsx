@@ -34,6 +34,14 @@ interface RegistrationItem {
   idNumber: string;
   dateOfBirth: string;
   category: string;
+  regExtras?: Array<{
+    selectedSize: string;
+    eventExtra: {
+      name: string;
+      price: number;
+      hasSizes: boolean;
+    };
+  }>;
 }
 
 interface CategoryGroup {
@@ -149,6 +157,20 @@ export default function InscritosPage() {
   // CSV export
   const exportCSV = () => {
     if (!data) return;
+
+    // Collect all unique extra names across all registrations
+    const allExtraNames = new Set<string>();
+    for (const cat of data.categories) {
+      for (const r of cat.registrations) {
+        if (r.regExtras) {
+          for (const re of r.regExtras) {
+            allExtraNames.add(re.eventExtra.name);
+          }
+        }
+      }
+    }
+    const extraNamesArray = Array.from(allExtraNames);
+
     const rows: string[] = [
       [
         "#",
@@ -157,11 +179,23 @@ export default function InscritosPage() {
         "Cedula",
         "Fecha de Nacimiento",
         "Categoria",
+        ...extraNamesArray.map((n) => `Extra: ${n}`),
       ].join(","),
     ];
     let counter = 1;
     for (const cat of data.categories) {
       for (const r of cat.registrations) {
+        // Build extras map for this registration
+        const extrasMap: Record<string, string> = {};
+        if (r.regExtras) {
+          for (const re of r.regExtras) {
+            const label = re.eventExtra.hasSizes && re.selectedSize
+              ? `${re.selectedSize}`
+              : "Sí";
+            extrasMap[re.eventExtra.name] = label;
+          }
+        }
+
         rows.push(
           [
             counter++,
@@ -170,6 +204,7 @@ export default function InscritosPage() {
             `"${r.idNumber || ""}"`,
             `"${r.dateOfBirth || ""}"`,
             `"${r.category}"`,
+            ...extraNamesArray.map((n) => `"${extrasMap[n] || ""}"`),
           ].join(",")
         );
       }

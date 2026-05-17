@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod/v4";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,6 +50,9 @@ import {
   Trophy,
   Heart,
   Clock,
+  Package,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 // ─── Types & Constants ───────────────────────────────────────────────────────
@@ -132,6 +135,7 @@ interface Participant {
   profile: string; // "competitivo" or "recreativo" (empty until selected, for MTB)
   autoFilled: boolean;
   lookingUp: boolean;
+  extrasOpen: boolean; // whether the extras section is expanded
 }
 
 const responsibleSchema = z.object({
@@ -179,6 +183,7 @@ function createEmptyParticipant(): Participant {
     profile: "",
     autoFilled: false,
     lookingUp: false,
+    extrasOpen: false,
   };
 }
 
@@ -206,6 +211,18 @@ export function GroupRegistrationDialog({
   } | null>(null);
   const { toast } = useToast();
 
+  // Extras state
+  const [eventExtras, setEventExtras] = useState<Array<{
+    id: string;
+    name: string;
+    price: number;
+    hasSizes: boolean;
+    sizes: string[];
+    included: boolean;
+    sortOrder: number;
+  }>>([]);
+  const [participantExtras, setParticipantExtras] = useState<Record<string, Record<string, { selected: boolean; size: string }>>>({});
+
   const responsibleForm = useForm<ResponsibleInfo>({
     resolver: zodResolver(responsibleSchema),
     defaultValues: { email: "", phone: "" },
@@ -226,6 +243,8 @@ export function GroupRegistrationDialog({
     emergencyForm.reset();
     setParticipants([createEmptyParticipant(), createEmptyParticipant()]);
     setRegistrationSuccess(null);
+    setEventExtras([]);
+    setParticipantExtras({});
   }, [responsibleForm, emergencyForm]);
 
   const handleClose = useCallback(
@@ -235,6 +254,77 @@ export function GroupRegistrationDialog({
     },
     [resetAll, onOpenChange]
   );
+
+  // ─── Fetch event extras when dialog opens ──────────────────────────────
+  useEffect(() => {
+    if (!open || !event?.slug) {
+      setEventExtras([]);
+      setParticipantExtras({});
+      return;
+    }
+    fetch(`/api/events/${event.slug}/extras`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setEventExtras(data);
+        }
+      })
+      .catch(() => {});
+  }, [open, event?.slug]);
+
+  // Initialize participant extras when participants change
+  useEffect(() => {
+    if (eventExtras.length === 0) return;
+    setParticipantExtras((prev) => {
+      const next = { ...prev };
+      for (const p of participants) {
+        if (!next[p.id]) {
+          const init: Record<string, { selected: boolean; size: string }> = {};
+          for (const e of eventExtras) {
+            init[e.id] = { selected: false, size: "" };
+          }
+          next[p.id] = init;
+        }
+      }
+      return next;
+    });
+  }, [participants, eventExtras]);
+
+  // Toggle extra for a participant
+  const toggleParticipantExtra = useCallback((participantId: string, extraId: string, selected: boolean) => {
+    setParticipantExtras((prev) => ({
+      ...prev,
+      [participantId]: {
+        ...prev[participantId],
+        [extraId]: {
+          ...prev[participantId]?.[extraId],
+          selected,
+          size: selected ? prev[participantId]?.[extraId]?.size || "" : "",
+        },
+      },
+    }));
+  }, []);
+
+  const setParticipantExtraSize = useCallback((participantId: string, extraId: string, size: string) => {
+    setParticipantExtras((prev) => ({
+      ...prev,
+      [participantId]: {
+        ...prev[participantId],
+        [extraId]: {
+          ...prev[participantId]?.[extraId],
+          size,
+        },
+      },
+    }));
+  }, []);
+
+  const toggleParticipantExtrasOpen = useCallback((participantId: string) => {
+    setParticipants((prev) =>
+      prev.map((p) =>
+        p.id === participantId ? { ...p, extrasOpen: !p.extrasOpen } : p
+      )
+    );
+  }, []);
 
   // ─── Lookup cédula ─────────────────────────────────────────────────────
   const handleLookup = useCallback(
@@ -497,6 +587,12 @@ export function GroupRegistrationDialog({
             shirtSize: p.shirtSize,
             category: p.category,
             mtbProfile: event?.sportType === "mtb" ? p.profile : undefined,
+            extras: Object.entries(participantExtras[p.id] || {})
+              .filter(([, v]) => v.selected)
+              .map(([extraId, v]) => ({
+                extraId,
+                selectedSize: v.size || undefined,
+              })),
           })),
           email: responsibleForm.getValues().email,
           phone: responsibleForm.getValues().phone,
@@ -556,7 +652,17 @@ export function GroupRegistrationDialog({
   );
 
   const currentPayment = paymentMethods.find((p) => p.id === selectedPayment);
-  const totalPrice = (event?.price ?? 0) * participants.length;
+
+  // Calculate total price including extras
+  const baseTotalPrice = (event?.price ?? 0) * participants.length;
+  const extrasGroupTotal = participants.reduce((sum, p) => {
+    const pExtras = participantExtras[p.id] || {};
+    return sum + eventExtras.reduce((s, e) => {
+      if (pExtras[e.id]?.selected && !e.included) return s + e.price;
+      return s;
+    }, 0);
+  }, 0);
+  const totalPrice = baseTotalPrice + extrasGroupTotal;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -1059,6 +1165,111 @@ export function GroupRegistrationDialog({
                         </p>
                       </div>
                     ) : null}
+
+                    {/* Extras collapsible section */}
+                    {eventExtras.length > 0 && (
+                      <div className="border-t pt-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleParticipantExtrasOpen(participant.id)}
+                          className="flex items-center justify-between w-full text-left"
+                        >
+                          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                            <Package className="size-3" />
+                            Extras
+                            {(() => {
+                              const pExtras = participantExtras[participant.id] || {};
+                              const count = eventExtras.filter((e) => pExtras[e.id]?.selected).length;
+                              return count > 0 ? (
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">
+                                  {count}
+                                </Badge>
+                              ) : null;
+                            })()}
+                          </div>
+                          {participant.extrasOpen ? (
+                            <ChevronUp className="size-3 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="size-3 text-muted-foreground" />
+                          )}
+                        </button>
+
+                        {participant.extrasOpen && (
+                          <div className="mt-2 space-y-2">
+                            {eventExtras.map((extra) => {
+                              const pExtras = participantExtras[participant.id] || {};
+                              const isSelected = pExtras[extra.id]?.selected || false;
+                              const selSize = pExtras[extra.id]?.size || "";
+
+                              return (
+                                <div
+                                  key={extra.id}
+                                  className={`border rounded-md p-2 transition-all ${
+                                    isSelected ? "border-red-200 bg-red-50/50" : "border-gray-100"
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between gap-1">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[11px] font-medium text-foreground leading-tight">
+                                        {extra.name}
+                                      </p>
+                                      <p className="text-[10px] text-muted-foreground">
+                                        {extra.included ? "Incluido" : `$${extra.price}`}
+                                      </p>
+                                    </div>
+                                    <div className="flex gap-0.5 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleParticipantExtra(participant.id, extra.id, false)}
+                                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${
+                                          !isSelected
+                                            ? "bg-red-500 text-white"
+                                            : "bg-gray-100 text-gray-500"
+                                        }`}
+                                      >
+                                        No
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleParticipantExtra(participant.id, extra.id, true)}
+                                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${
+                                          isSelected
+                                            ? "bg-red-500 text-white"
+                                            : "bg-gray-100 text-gray-500"
+                                        }`}
+                                      >
+                                        Sí
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {isSelected && extra.hasSizes && Array.isArray(extra.sizes) && extra.sizes.length > 0 && (
+                                    <div className="mt-1.5 pt-1.5 border-t border-red-100">
+                                      <div className="flex flex-wrap gap-1">
+                                        {extra.sizes.map((size) => (
+                                          <button
+                                            key={size}
+                                            type="button"
+                                            onClick={() => setParticipantExtraSize(participant.id, extra.id, size)}
+                                            className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-all ${
+                                              selSize === size
+                                                ? "border-red-500 bg-red-100 text-red-700"
+                                                : "border-gray-200"
+                                            }`}
+                                          >
+                                            {size}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </motion.div>
                 ))}
               </div>

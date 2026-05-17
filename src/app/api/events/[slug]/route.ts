@@ -13,6 +13,9 @@ export async function GET(
         registrations: {
           orderBy: { createdAt: "desc" },
         },
+        extras: {
+          orderBy: { sortOrder: "asc" },
+        },
       },
     });
 

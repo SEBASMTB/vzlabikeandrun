@@ -14,6 +14,8 @@ interface EmailRegistrationData {
   eventDistance: string;
   category: string;
   paymentMethod: string;
+  totalAmount?: number;
+  extras?: Array<{ name: string; price: number; selectedSize: string }>;
 }
 
 function generatePreRegistrationHTML(data: EmailRegistrationData): string {
@@ -108,6 +110,39 @@ function generatePreRegistrationHTML(data: EmailRegistrationData): string {
                           <span style="color: #333333; font-size: 15px; font-weight: 600;">${paymentLabel}</span>
                         </td>
                       </tr>
+                      ${
+                        data.extras && data.extras.length > 0
+                          ? `
+                      <tr>
+                        <td style="padding: 12px 0 8px 0; border-bottom: 1px solid #e2e8f0;">
+                          <span style="color: #888888; font-size: 13px;">EXTRAS SELECCIONADOS</span>
+                        </td>
+                      </tr>
+                      ${data.extras
+                        .map(
+                          (e) => `
+                      <tr>
+                        <td style="padding: 4px 0; border-bottom: 1px solid #f1f5f9;">
+                          <span style="color: #333333; font-size: 14px;">${e.name}${e.selectedSize ? ` (${e.selectedSize})` : ""}</span>
+                          <span style="color: #333333; font-size: 14px; font-weight: 600; float: right;">$${e.price.toFixed(2)} USD</span>
+                        </td>
+                      </tr>`
+                        )
+                        .join("")}
+                      ${
+                        data.totalAmount !== undefined
+                          ? `
+                      <tr>
+                        <td style="padding: 12px 0 0 0;">
+                          <span style="color: #1a1a2e; font-size: 16px; font-weight: 700;">TOTAL A PAGAR</span>
+                          <span style="color: #1a1a2e; font-size: 16px; font-weight: 700; float: right;">$${data.totalAmount.toFixed(2)} USD</span>
+                        </td>
+                      </tr>`
+                          : ""
+                      }
+                      `
+                          : ""
+                      }
                     </table>
                   </td>
                 </tr>

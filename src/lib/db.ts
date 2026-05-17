@@ -305,6 +305,28 @@ CREATE TABLE IF NOT EXISTS "Product" (
     FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS "EventExtra" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "eventId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "price" REAL NOT NULL DEFAULT 0,
+    "hasSizes" BOOLEAN NOT NULL DEFAULT 0,
+    "sizes" TEXT NOT NULL DEFAULT '[]',
+    "included" BOOLEAN NOT NULL DEFAULT 0,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS "RegistrationExtra" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "registrationId" TEXT NOT NULL,
+    "eventExtraId" TEXT NOT NULL,
+    "selectedSize" TEXT NOT NULL DEFAULT '',
+    FOREIGN KEY ("registrationId") REFERENCES "Registration"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY ("eventExtraId") REFERENCES "EventExtra"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS "ProductOrder" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "productId" TEXT NOT NULL,
@@ -398,6 +420,23 @@ const EXPECTED_COLUMNS: Record<string, Record<string, string>> = {
     sortOrder: 'INTEGER NOT NULL DEFAULT 0',
     createdAt: 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
     updatedAt: 'DATETIME NOT NULL',
+  },
+  EventExtra: {
+    id: 'TEXT NOT NULL PRIMARY KEY',
+    eventId: 'TEXT NOT NULL',
+    name: 'TEXT NOT NULL',
+    price: 'REAL NOT NULL DEFAULT 0',
+    hasSizes: 'BOOLEAN NOT NULL DEFAULT 0',
+    sizes: "TEXT NOT NULL DEFAULT '[]'",
+    included: 'BOOLEAN NOT NULL DEFAULT 0',
+    sortOrder: 'INTEGER NOT NULL DEFAULT 0',
+    createdAt: 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
+  },
+  RegistrationExtra: {
+    id: 'TEXT NOT NULL PRIMARY KEY',
+    registrationId: 'TEXT NOT NULL',
+    eventExtraId: 'TEXT NOT NULL',
+    selectedSize: "TEXT NOT NULL DEFAULT ''",
   },
   ProductOrder: {
     id: 'TEXT NOT NULL PRIMARY KEY',

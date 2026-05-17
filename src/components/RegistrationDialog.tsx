@@ -44,6 +44,7 @@ import {
   Heart,
   Clock,
   Mail,
+  Package,
 } from "lucide-react";
 import { LiabilityWaiver } from "./LiabilityWaiver";
 import { calculateAge, parseEventCategories, getEligibleCategories, getMTBCategoryOptions } from "@/lib/categories";
@@ -168,6 +169,20 @@ export function RegistrationDialog({
   const [categoryMessage, setCategoryMessage] = useState<string>("");
   const [mtbProfile, setMTBProfile] = useState<"competitivo" | "recreativo" | "">("");
   const [registrationSuccess, setRegistrationSuccess] = useState<{bibNumber: number; payLabel: string} | null>(null);
+
+  // Extras state
+  const [eventExtras, setEventExtras] = useState<Array<{
+    id: string;
+    name: string;
+    price: number;
+    hasSizes: boolean;
+    sizes: string[];
+    included: boolean;
+    sortOrder: number;
+  }>>([]);
+  const [selectedExtras, setSelectedExtras] = useState<Record<string, { selected: boolean; size: string }>>({});
+  const [extrasLoaded, setExtrasLoaded] = useState(false);
+
   const { toast } = useToast();
 
   const personalForm = useForm<PersonalInfo>({
@@ -193,6 +208,31 @@ export function RegistrationDialog({
     resolver: zodResolver(emergencySchema),
     defaultValues: { emergencyContact: "", emergencyPhone: "" },
   });
+
+  // Fetch event extras when dialog opens
+  useEffect(() => {
+    if (!open || !event?.slug) {
+      setEventExtras([]);
+      setSelectedExtras({});
+      setExtrasLoaded(false);
+      return;
+    }
+    fetch(`/api/events/${event.slug}/extras`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setEventExtras(data);
+          // Initialize selectedExtras with all extras as not selected
+          const initial: Record<string, { selected: boolean; size: string }> = {};
+          for (const e of data) {
+            initial[e.id] = { selected: false, size: "" };
+          }
+          setSelectedExtras(initial);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setExtrasLoaded(true));
+  }, [open, event?.slug]);
 
   // Auto-calculate category when DOB, gender, or event changes
   useEffect(() => {
@@ -285,6 +325,9 @@ export function RegistrationDialog({
     setAutoAge(null);
     setMTBProfile("");
     setRegistrationSuccess(null);
+    setEventExtras([]);
+    setSelectedExtras({});
+    setExtrasLoaded(false);
   };
 
   const handleClose = (val: boolean) => {
@@ -334,6 +377,14 @@ export function RegistrationDialog({
 
     setSubmitting(true);
 
+    // Build extras array for the API
+    const extrasPayload = Object.entries(selectedExtras)
+      .filter(([, v]) => v.selected)
+      .map(([extraId, v]) => ({
+        extraId,
+        selectedSize: v.size || undefined,
+      }));
+
     try {
       const res = await fetch(`/api/events/${event.slug}/register`, {
         method: "POST",
@@ -346,6 +397,7 @@ export function RegistrationDialog({
           paymentRef: paymentRef,
           waiverAccepted: true,
           mtbProfile: event?.sportType === "mtb" ? mtbProfile : undefined,
+          extras: extrasPayload,
         }),
       });
 
@@ -373,6 +425,14 @@ export function RegistrationDialog({
   };
 
   const currentPayment = paymentMethods.find((p) => p.id === selectedPayment);
+
+  // Calculate extras total
+  const extrasTotal = eventExtras.reduce((sum, extra) => {
+    const sel = selectedExtras[extra.id];
+    if (sel && sel.selected && !extra.included) return sum + extra.price;
+    return sum;
+  }, 0);
+  const totalWithExtras = (event?.price ?? 0) + extrasTotal;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -829,6 +889,148 @@ export function RegistrationDialog({
                   {...raceForm.register("team")}
                 />
               </div>
+
+              {/* Extras Section */}
+              {eventExtras.length > 0 && (
+                <div className="space-y-3 mt-2">
+                  <div className="border-t pt-3">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Package className="size-4 text-red-500" />
+                      Extras Disponibles
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Agrega productos opcionales a tu inscripción
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    {eventExtras.map((extra) => {
+                      const isSelected = selectedExtras[extra.id]?.selected || false;
+                      const selectedSize = selectedExtras[extra.id]?.size || "";
+
+                      return (
+                        <div
+                          key={extra.id}
+                          className={`border rounded-lg p-3 transition-all ${
+                            isSelected
+                              ? "border-red-300 bg-red-50/50"
+                              : "border-gray-200"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground">
+                                {extra.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {extra.included ? "Incluido" : `$${extra.price} USD`}
+                              </p>
+                            </div>
+                            <div className="flex gap-1">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSelectedExtras((prev) => ({
+                                    ...prev,
+                                    [extra.id]: {
+                                      ...prev[extra.id],
+                                      selected: false,
+                                    },
+                                  }))
+                                }
+                                className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                                  !isSelected
+                                    ? "bg-red-500 text-white"
+                                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                }`}
+                              >
+                                No
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSelectedExtras((prev) => ({
+                                    ...prev,
+                                    [extra.id]: {
+                                      ...prev[extra.id],
+                                      selected: true,
+                                    },
+                                  }))
+                                }
+                                className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                                  isSelected
+                                    ? "bg-red-500 text-white"
+                                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                }`}
+                              >
+                                Sí
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Size selector */}
+                          {isSelected && extra.hasSizes && Array.isArray(extra.sizes) && extra.sizes.length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-red-200">
+                              <Label className="text-xs text-red-700">
+                                Selecciona talla:
+                              </Label>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {extra.sizes.map((size) => (
+                                  <button
+                                    key={size}
+                                    type="button"
+                                    onClick={() =>
+                                      setSelectedExtras((prev) => ({
+                                        ...prev,
+                                        [extra.id]: {
+                                          ...prev[extra.id],
+                                          size,
+                                        },
+                                      }))
+                                    }
+                                    className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${
+                                      selectedSize === size
+                                        ? "border-red-500 bg-red-100 text-red-700"
+                                        : "border-gray-200 hover:border-gray-300"
+                                    }`}
+                                  >
+                                    {size}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Dynamic total */}
+                  {extrasTotal > 0 && (
+                    <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-lg p-3">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Inscripción:</span>
+                        <span className="font-medium">${event?.price} USD</span>
+                      </div>
+                      {eventExtras
+                        .filter((e) => selectedExtras[e.id]?.selected && !e.included)
+                        .map((e) => (
+                          <div key={e.id} className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">
+                              {e.name}
+                              {selectedExtras[e.id]?.size ? ` (${selectedExtras[e.id].size})` : ""}
+                            </span>
+                            <span className="font-medium">${e.price} USD</span>
+                          </div>
+                        ))}
+                      <div className="border-t border-red-300 mt-2 pt-2 flex justify-between items-center">
+                        <span className="font-bold text-red-800">Total:</span>
+                        <span className="font-bold text-red-700 text-lg">${totalWithExtras} USD</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -908,8 +1110,13 @@ export function RegistrationDialog({
               {/* Amount to pay */}
               <div className="gradient-primary rounded-lg p-4 text-white text-center">
                 <p className="text-sm opacity-90">Monto a pagar</p>
-                <p className="text-3xl font-bold">${event?.price} USD</p>
+                <p className="text-3xl font-bold">${totalWithExtras} USD</p>
                 <p className="text-sm opacity-80">{event?.title}</p>
+                {extrasTotal > 0 && (
+                  <p className="text-xs opacity-70 mt-1">
+                    Incluye ${(event?.price ?? 0)} inscripción + ${extrasTotal} en extras
+                  </p>
+                )}
               </div>
 
               {/* Payment method selection */}
@@ -1003,8 +1210,23 @@ export function RegistrationDialog({
                   <p>
                     <strong>Categoría:</strong> {raceForm.getValues().category}
                   </p>
+                  {extrasTotal > 0 && (
+                    <>
+                      <p>
+                        <strong>Inscripción:</strong> ${(event?.price ?? 0)} USD
+                      </p>
+                      {eventExtras
+                        .filter((e) => selectedExtras[e.id]?.selected && !e.included)
+                        .map((e) => (
+                          <p key={e.id}>
+                            <strong>{e.name}:</strong> ${e.price} USD
+                            {selectedExtras[e.id]?.size ? ` (${selectedExtras[e.id].size})` : ""}
+                          </p>
+                        ))}
+                    </>
+                  )}
                   <p>
-                    <strong>Pago:</strong> ${event?.price} USD via{" "}
+                    <strong>Total:</strong> ${totalWithExtras} USD via{" "}
                     {currentPayment?.label}
                   </p>
                 </div>

@@ -44,7 +44,7 @@ export async function POST(
       paymentRef,
       waiverAccepted,
     } = body as {
-      participants: GroupParticipant[];
+      participants: GroupParticipant & { extras?: Array<{ extraId: string; selectedSize?: string }> }[];
       email: string;
       phone: string;
       emergencyContact: string;
@@ -207,6 +207,29 @@ export async function POST(
         lastName: registration.lastName,
         category: registration.category,
       });
+
+      // Create RegistrationExtra records for this participant
+      if (p.extras && Array.isArray(p.extras) && p.extras.length > 0) {
+        for (const extra of p.extras) {
+          const eventExtra = await db.eventExtra.findFirst({
+            where: { id: extra.extraId, eventId: event.id },
+          });
+
+          if (eventExtra) {
+            if (eventExtra.hasSizes && !extra.selectedSize) {
+              continue;
+            }
+
+            await db.registrationExtra.create({
+              data: {
+                registrationId: registration.id,
+                eventExtraId: extra.extraId,
+                selectedSize: extra.selectedSize || "",
+              },
+            });
+          }
+        }
+      }
     }
 
     // Send confirmation email for each participant (non-blocking)
