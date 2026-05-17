@@ -13,6 +13,7 @@ interface GroupParticipant {
   shirtSize?: string;
   category: string;
   mtbProfile?: string;
+  wantsShirt?: boolean;
 }
 
 // Retry wrapper for cold start DB initialization
@@ -209,6 +210,8 @@ export async function POST(
             paymentRef: paymentRef || "",
             waiverAccepted: waiverAccepted || false,
             status: "pending",
+            wantsShirt: p.wantsShirt !== undefined ? p.wantsShirt : true,
+            mtbProfile: p.mtbProfile || "",
           },
         })
       );

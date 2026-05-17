@@ -33,6 +33,8 @@ interface RegistrationItem {
   idNumber: string;
   dateOfBirth: string;
   category: string;
+  wantsShirt?: boolean;
+  shirtSize?: string;
 }
 
 interface CategoryGroup {
@@ -47,6 +49,7 @@ interface EventInfo {
   slug: string;
   sportType: string;
   maxParticipants: number;
+  hasShirt?: boolean;
 }
 
 interface RegistrationsData {
@@ -392,19 +395,20 @@ export default function InscritosPage() {
                 {expandedCategories[cat.category] !== false && (
                   <div className="border-t overflow-x-auto">
                     {/* Table Header */}
-                    <div className="hidden sm:grid sm:grid-cols-[3rem_1fr_1fr_7rem_6rem] bg-gray-50 px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <div className="hidden sm:grid sm:grid-cols-[3rem_1fr_1fr_7rem_6rem_5rem] bg-gray-50 px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       <div>#</div>
                       <div>Nombre</div>
                       <div>Apellido</div>
                       <div>Cedula</div>
                       <div>F. Nacimiento</div>
+                      {eventInfo?.hasShirt !== false && <div>Franela</div>}
                     </div>
 
                     {/* Rows */}
                     {cat.registrations.map((reg, idx) => (
                       <div
                         key={reg.id}
-                        className={`grid grid-cols-2 sm:grid-cols-[3rem_1fr_1fr_7rem_6rem] px-5 py-3 items-center ${
+                        className={`grid grid-cols-2 sm:grid-cols-[3rem_1fr_1fr_7rem_6rem_5rem] px-5 py-3 items-center ${
                           idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"
                         } hover:bg-red-50/30 transition-colors`}
                       >
@@ -423,6 +427,17 @@ export default function InscritosPage() {
                         <div className="text-xs text-muted-foreground">
                           {reg.dateOfBirth || "—"}
                         </div>
+                        {eventInfo?.hasShirt !== false && (
+                          <div className="text-xs text-muted-foreground hidden sm:block">
+                            {reg.wantsShirt === false ? (
+                              <span className="text-gray-400">No</span>
+                            ) : reg.shirtSize ? (
+                              <span className="font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded">{reg.shirtSize}</span>
+                            ) : (
+                              <span className="text-amber-600">—</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

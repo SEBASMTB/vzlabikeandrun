@@ -560,7 +560,9 @@ export function GroupRegistrationDialog({
   );
 
   const currentPayment = paymentMethods.find((p) => p.id === selectedPayment);
-  const totalPrice = (event?.price ?? 0) * participants.length;
+  const shirtCount = participants.filter((p) => p.wantsShirt === "true").length;
+  const shirtExtraCost = event?.shirtIncluded === false ? (event?.shirtPrice || 0) * shirtCount : 0;
+  const totalPrice = (event?.price ?? 0) * participants.length + shirtExtraCost;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -1003,7 +1005,7 @@ export function GroupRegistrationDialog({
                     {event?.hasShirt !== false && (
                     <div className="space-y-2">
                       <div className={`${event?.shirtIncluded === false ? 'bg-amber-50 border-2 border-amber-300' : 'bg-blue-50 border-2 border-blue-300'} rounded-lg p-3`}>
-                        <p className="text-xs font-semibold ${event?.shirtIncluded === false ? 'text-amber-800' : 'text-blue-800'}">
+                        <p className={`text-xs font-semibold ${event?.shirtIncluded === false ? 'text-amber-800' : 'text-blue-800'}`}>
                           {event?.shirtIncluded === false
                             ? `Franela/Camiseta - Opcional (+$${event?.shirtPrice || 0} USD)`
                             : 'Franela/Camiseta - Incluida'}
@@ -1206,6 +1208,9 @@ export function GroupRegistrationDialog({
                 <p className="text-sm opacity-80">
                   {participants.length} participante
                   {participants.length !== 1 ? "s" : ""} × ${event?.price} USD
+                  {shirtExtraCost > 0 && (
+                    <> + {shirtCount} franela{shirtCount !== 1 ? "s" : ""} × ${event?.shirtPrice || 0} USD</>
+                  )}
                 </p>
               </div>
 

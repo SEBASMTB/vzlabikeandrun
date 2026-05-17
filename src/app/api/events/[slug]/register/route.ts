@@ -160,6 +160,7 @@ export async function POST(
           waiverAccepted: waiverAccepted || false,
           status: "pending",
           wantsShirt: wantsShirt !== undefined ? wantsShirt : true,
+          mtbProfile: mtbProfile || "",
         },
       })
     );

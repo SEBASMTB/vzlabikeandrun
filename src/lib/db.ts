@@ -238,6 +238,8 @@ const SEED_EVENTS = [
     ageCalcMode: "calendar_year",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: true,
+    shirtPrice: 0,
   },
 ];
 
