@@ -1,8 +1,22 @@
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { sendPreRegistrationEmail } from "@/lib/email";
 import { calculateAge, parseEventCategories, validateMTBCategory } from "@/lib/categories";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+
+// Retry wrapper for cold start DB initialization
+async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      console.error(`[Register] Attempt ${attempt + 1} failed:`, error);
+      if (attempt === retries) throw error;
+      await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+    }
+  }
+  throw new Error("Max retries exceeded");
+}
 
 export async function POST(
   request: NextRequest,
@@ -72,6 +86,9 @@ export async function POST(
       );
     }
 
+    // Use getDb() for reliable initialization, with retry for cold starts
+    const db = await getDb();
+
     // Check event exists by slug
     const event = await db.event.findUnique({ where: { slug } });
     if (!event) {
@@ -120,31 +137,30 @@ export async function POST(
       }
     }
 
-    // Generate bib number
-    const bibNumber = regCount + 1;
-
-    const registration = await db.registration.create({
-      data: {
-        eventId: event.id,
-        firstName,
-        lastName,
-        email,
-        phone,
-        idNumber: idNumber || "",
-        gender,
-        dateOfBirth,
-        shirtSize: shirtSize || "",
-        category,
-        team: team || "",
-        emergencyContact: emergencyContact || "",
-        emergencyPhone: emergencyPhone || "",
-        paymentMethod: paymentMethod || "",
-        paymentRef: paymentRef || "",
-        waiverAccepted: waiverAccepted || false,
-        status: "pending",
-        bibNumber,
-      },
-    });
+    // Create registration (no bibNumber — assigned manually by admin later)
+    const registration = await withRetry(() =>
+      db.registration.create({
+        data: {
+          eventId: event.id,
+          firstName,
+          lastName,
+          email,
+          phone,
+          idNumber: idNumber || "",
+          gender,
+          dateOfBirth,
+          shirtSize: shirtSize || "",
+          category,
+          team: team || "",
+          emergencyContact: emergencyContact || "",
+          emergencyPhone: emergencyPhone || "",
+          paymentMethod: paymentMethod || "",
+          paymentRef: paymentRef || "",
+          waiverAccepted: waiverAccepted || false,
+          status: "pending",
+        },
+      })
+    );
 
     // Send confirmation email (non-blocking)
     sendPreRegistrationEmail({
@@ -160,9 +176,10 @@ export async function POST(
     }).catch(() => {});
 
     return NextResponse.json(registration, { status: 201 });
-  } catch {
+  } catch (error) {
+    console.error("[Register] Error processing registration:", error);
     return NextResponse.json(
-      { error: "Error al procesar inscripción" },
+      { error: "Error al procesar inscripción. Intenta de nuevo en unos segundos." },
       { status: 500 }
     );
   }
