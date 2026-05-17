@@ -45,6 +45,7 @@ import {
   Clock,
   Mail,
   Shirt,
+  AlertTriangle,
 } from "lucide-react";
 import { LiabilityWaiver } from "./LiabilityWaiver";
 import { calculateAge, parseEventCategories, getEligibleCategories, getMTBCategoryOptions } from "@/lib/categories";
@@ -596,10 +597,13 @@ export function RegistrationDialog({
                     : "Coloca tu cédula y buscaremos tus datos de inscripciones anteriores."}
                 </p>
                 {personalForm.formState.errors.idNumber && (
-                  <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
-                    <p className="text-sm font-semibold text-red-700">
-                      {personalForm.formState.errors.idNumber.message}
-                    </p>
+                  <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-2 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="size-5 text-red-500 shrink-0" />
+                      <p className="text-base font-bold text-red-700">
+                        {personalForm.formState.errors.idNumber.message}
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -613,10 +617,13 @@ export function RegistrationDialog({
                     {...personalForm.register("firstName")}
                   />
                   {personalForm.formState.errors.firstName && (
-                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
-                      <p className="text-sm font-semibold text-red-700">
-                        {personalForm.formState.errors.firstName.message}
-                      </p>
+                    <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-2 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="size-5 text-red-500 shrink-0" />
+                        <p className="text-base font-bold text-red-700">
+                          {personalForm.formState.errors.firstName.message}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -628,10 +635,13 @@ export function RegistrationDialog({
                     {...personalForm.register("lastName")}
                   />
                   {personalForm.formState.errors.lastName && (
-                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
-                      <p className="text-sm font-semibold text-red-700">
-                        {personalForm.formState.errors.lastName.message}
-                      </p>
+                    <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-2 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="size-5 text-red-500 shrink-0" />
+                        <p className="text-base font-bold text-red-700">
+                          {personalForm.formState.errors.lastName.message}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -647,10 +657,13 @@ export function RegistrationDialog({
                     {...personalForm.register("email")}
                   />
                   {personalForm.formState.errors.email && (
-                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
-                      <p className="text-sm font-semibold text-red-700">
-                        {personalForm.formState.errors.email.message}
-                      </p>
+                    <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-2 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="size-5 text-red-500 shrink-0" />
+                        <p className="text-base font-bold text-red-700">
+                          {personalForm.formState.errors.email.message}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -663,10 +676,13 @@ export function RegistrationDialog({
                     {...personalForm.register("phone")}
                   />
                   {personalForm.formState.errors.phone && (
-                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
-                      <p className="text-sm font-semibold text-red-700">
-                        {personalForm.formState.errors.phone.message}
-                      </p>
+                    <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-2 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="size-5 text-red-500 shrink-0" />
+                        <p className="text-base font-bold text-red-700">
+                          {personalForm.formState.errors.phone.message}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -681,10 +697,13 @@ export function RegistrationDialog({
                     {...personalForm.register("dateOfBirth")}
                   />
                   {personalForm.formState.errors.dateOfBirth && (
-                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
-                      <p className="text-sm font-semibold text-red-700">
-                        {personalForm.formState.errors.dateOfBirth.message}
-                      </p>
+                    <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-2 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="size-5 text-red-500 shrink-0" />
+                        <p className="text-base font-bold text-red-700">
+                          {personalForm.formState.errors.dateOfBirth.message}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -707,10 +726,13 @@ export function RegistrationDialog({
                     </SelectContent>
                   </Select>
                   {personalForm.formState.errors.gender && (
-                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
-                      <p className="text-sm font-semibold text-red-700">
-                        {personalForm.formState.errors.gender.message}
-                      </p>
+                    <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-2 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="size-5 text-red-500 shrink-0" />
+                        <p className="text-base font-bold text-red-700">
+                          {personalForm.formState.errors.gender.message}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -913,9 +935,14 @@ export function RegistrationDialog({
                 </div>
 
                 {raceForm.formState.errors.category && (
-                  <p className="text-sm text-destructive">
-                    {raceForm.formState.errors.category.message}
-                  </p>
+                  <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-2 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="size-5 text-red-500 shrink-0" />
+                      <p className="text-base font-bold text-red-700">
+                        {raceForm.formState.errors.category.message}
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -956,10 +983,13 @@ export function RegistrationDialog({
                     {...emergencyForm.register("emergencyContact")}
                   />
                   {emergencyForm.formState.errors.emergencyContact && (
-                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
-                      <p className="text-sm font-semibold text-red-700">
-                        {emergencyForm.formState.errors.emergencyContact.message}
-                      </p>
+                    <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-2 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="size-5 text-red-500 shrink-0" />
+                        <p className="text-base font-bold text-red-700">
+                          {emergencyForm.formState.errors.emergencyContact.message}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -975,10 +1005,13 @@ export function RegistrationDialog({
                     {...emergencyForm.register("emergencyPhone")}
                   />
                   {emergencyForm.formState.errors.emergencyPhone && (
-                    <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-1">
-                      <p className="text-sm font-semibold text-red-700">
-                        {emergencyForm.formState.errors.emergencyPhone.message}
-                      </p>
+                    <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-2 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="size-5 text-red-500 shrink-0" />
+                        <p className="text-base font-bold text-red-700">
+                          {emergencyForm.formState.errors.emergencyPhone.message}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>

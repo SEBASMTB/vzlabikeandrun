@@ -50,6 +50,7 @@ import {
   Trophy,
   Heart,
   Clock,
+  AlertTriangle,
 } from "lucide-react";
 
 // ─── Types & Constants ───────────────────────────────────────────────────────
@@ -779,9 +780,14 @@ export function GroupRegistrationDialog({
                     {...responsibleForm.register("email")}
                   />
                   {responsibleForm.formState.errors.email && (
-                    <p className="text-sm text-destructive">
-                      {responsibleForm.formState.errors.email.message}
-                    </p>
+                    <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-2 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="size-5 text-red-500 shrink-0" />
+                        <p className="text-base font-bold text-red-700">
+                          {responsibleForm.formState.errors.email.message}
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </div>
 
@@ -796,9 +802,14 @@ export function GroupRegistrationDialog({
                     {...responsibleForm.register("phone")}
                   />
                   {responsibleForm.formState.errors.phone && (
-                    <p className="text-sm text-destructive">
-                      {responsibleForm.formState.errors.phone.message}
-                    </p>
+                    <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-2 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="size-5 text-red-500 shrink-0" />
+                        <p className="text-base font-bold text-red-700">
+                          {responsibleForm.formState.errors.phone.message}
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

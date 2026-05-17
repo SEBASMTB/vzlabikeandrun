@@ -149,44 +149,7 @@ export default function InscritosPage() {
     0
   );
 
-  // CSV export
-  const exportCSV = () => {
-    if (!data) return;
-    const rows: string[] = [
-      [
-        "#",
-        "Nombre",
-        "Apellido",
-        "Cedula",
-        "Fecha de Nacimiento",
-        "Categoria",
-      ].join(","),
-    ];
-    let counter = 1;
-    for (const cat of data.categories) {
-      for (const r of cat.registrations) {
-        rows.push(
-          [
-            counter++,
-            `"${r.firstName}"`,
-            `"${r.lastName}"`,
-            `"${r.idNumber || ""}"`,
-            `"${r.dateOfBirth || ""}"`,
-            `"${r.category}"`,
-          ].join(",")
-        );
-      }
-    }
-    const blob = new Blob(["\uFEFF" + rows.join("\n")], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `inscritos-${data.event.slug}-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+
 
   if (loading) {
     return (
@@ -318,28 +281,6 @@ export default function InscritosPage() {
                   <SelectItem value="F">Damas</SelectItem>
                 </SelectContent>
               </Select>
-
-              {/* Expand/Collapse */}
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={expandAll}
-                  className="text-xs"
-                >
-                  <ChevronDown className="size-3 mr-1" />
-                  Expandir
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={collapseAll}
-                  className="text-xs"
-                >
-                  <ChevronUp className="size-3 mr-1" />
-                  Colapsar
-                </Button>
-              </div>
 
               {/* Category Filter */}
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
