@@ -540,17 +540,22 @@ function createPrismaClient(): PrismaClient {
     return new PrismaClient({ adapter })
   }
 
-  // 3. DATABASE_URL – local file
+  // 3. DATABASE_URL – local file (only if path seems valid)
   if (dbUrl.startsWith('file:')) {
-    const adapter = new PrismaLibSQL({
-      url: dbUrl,
-      concurrency: 10,
-    })
-    return new PrismaClient({ adapter })
+    const filePath = dbUrl.replace('file:', '')
+    // Skip if path looks like a local dev path that won't exist in production
+    const looksLikeLocalDev = filePath.includes('/home/') || filePath.includes('/Users/')
+    if (!looksLikeLocalDev) {
+      const adapter = new PrismaLibSQL({
+        url: dbUrl,
+        concurrency: 10,
+      })
+      return new PrismaClient({ adapter })
+    }
   }
 
-  // 4. Last resort: /tmp in production
-  if (process.env.NODE_ENV === 'production') {
+  // 4. Production fallback: /tmp (ephemeral but works for demo)
+  if (process.env.NODE_ENV === 'production' || tursoUrl === '' && dbUrl === '') {
     const adapter = new PrismaLibSQL({
       url: 'file:/tmp/vzlabike.db',
       concurrency: 10,
@@ -558,7 +563,7 @@ function createPrismaClient(): PrismaClient {
     return new PrismaClient({ adapter })
   }
 
-  // Fallback: direct PrismaClient (local dev)
+  // 5. Fallback: direct PrismaClient (local dev)
   return new PrismaClient()
 }
 
