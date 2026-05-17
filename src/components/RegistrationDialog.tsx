@@ -738,74 +738,51 @@ export function RegistrationDialog({
                 </div>
               </div>
 
-              {/* Shirt / Franela */}
+              {/* Shirt / Franela - ALWAYS ask */}
               {event?.hasShirt !== false && (
               <div className="space-y-3">
-                {event?.shirtIncluded === false ? (
-                  /* Shirt is OPTIONAL with extra cost */
-                  <>
-                    <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-amber-800">
-                            Franela/Camiseta - Opcional
-                          </p>
-                          <p className="text-xs text-amber-600 mt-1">
-                            La franela tiene un costo adicional de <strong>${event?.shirtPrice || 0} USD</strong>
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <button
-                            type="button"
-                            onClick={() => { setWantsShirt(true); personalForm.setValue("shirtSize", "M"); }}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                              wantsShirt
-                                ? "bg-green-500 text-white border-2 border-green-600"
-                                : "bg-white text-gray-600 border-2 border-gray-300 hover:border-green-400"
-                            }`}
-                          >
-                            Si
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => { setWantsShirt(false); personalForm.setValue("shirtSize", ""); }}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                              !wantsShirt
-                                ? "bg-red-500 text-white border-2 border-red-600"
-                                : "bg-white text-gray-600 border-2 border-gray-300 hover:border-red-400"
-                            }`}
-                          >
-                            No
-                          </button>
-                        </div>
-                      </div>
+                <div className={event?.shirtIncluded === false ? "bg-amber-50 border-2 border-amber-300 rounded-lg p-4" : "bg-blue-50 border-2 border-blue-300 rounded-lg p-4"}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <p className={event?.shirtIncluded === false ? "text-sm font-semibold text-amber-800" : "text-sm font-semibold text-blue-800"}>
+                        Franela/Camiseta - {event?.shirtIncluded === false ? "Opcional" : "Incluida"}
+                      </p>
+                      <p className="text-xs mt-1">
+                        {event?.shirtIncluded === false ? (
+                          <span className="text-amber-600">
+                            {"Costo adicional de $" + (event?.shirtPrice || 0) + " USD"}
+                          </span>
+                        ) : (
+                          <span className="text-blue-600">
+                            Incluida con tu inscripcion. Deseas recibirla?
+                          </span>
+                        )}
+                      </p>
                     </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => { setWantsShirt(true); personalForm.setValue("shirtSize", "M"); }}
+                        className={wantsShirt
+                          ? "px-5 py-2.5 rounded-lg text-sm font-bold transition-all bg-green-500 text-white border-2 border-green-600 shadow-sm"
+                          : "px-5 py-2.5 rounded-lg text-sm font-bold transition-all bg-white text-gray-600 border-2 border-gray-300 hover:border-green-400"}
+                      >
+                        Si
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setWantsShirt(false); personalForm.setValue("shirtSize", ""); }}
+                        className={!wantsShirt
+                          ? "px-5 py-2.5 rounded-lg text-sm font-bold transition-all bg-red-500 text-white border-2 border-red-600 shadow-sm"
+                          : "px-5 py-2.5 rounded-lg text-sm font-bold transition-all bg-white text-gray-600 border-2 border-gray-300 hover:border-red-400"}
+                      >
+                        No
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
-                    {wantsShirt && (
-                      <div className="space-y-2">
-                        <Label htmlFor="shirtSize">Talla de Camiseta/Franela *</Label>
-                        <Select
-                          value={personalForm.watch("shirtSize")}
-                          onValueChange={(val) =>
-                            personalForm.setValue("shirtSize", val)
-                          }
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Seleccionar talla" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="S">S</SelectItem>
-                            <SelectItem value="M">M</SelectItem>
-                            <SelectItem value="L">L</SelectItem>
-                            <SelectItem value="XL">XL</SelectItem>
-                            <SelectItem value="XXL">XXL</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  /* Shirt is INCLUDED in the price */
+                {wantsShirt && (
                   <div className="space-y-2">
                     <Label htmlFor="shirtSize">Talla de Camiseta/Franela *</Label>
                     <Select
@@ -825,7 +802,6 @@ export function RegistrationDialog({
                         <SelectItem value="XXL">XXL</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">Este evento incluye franela/camiseta</p>
                   </div>
                 )}
               </div>

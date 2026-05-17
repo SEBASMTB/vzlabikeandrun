@@ -129,6 +129,7 @@ interface Participant {
   gender: string;
   dateOfBirth: string;
   shirtSize: string;
+  wantsShirt: string;
   category: string;
   profile: string; // "competitivo" or "recreativo" (empty until selected, for MTB)
   autoFilled: boolean;
@@ -176,6 +177,7 @@ function createEmptyParticipant(): Participant {
     gender: "",
     dateOfBirth: "",
     shirtSize: "",
+    wantsShirt: "true",
     category: "",
     profile: "",
     autoFilled: false,
@@ -498,6 +500,7 @@ export function GroupRegistrationDialog({
             shirtSize: p.shirtSize,
             category: p.category,
             mtbProfile: event?.sportType === "mtb" ? p.profile : undefined,
+            wantsShirt: p.wantsShirt === "true",
           })),
           email: responsibleForm.getValues().email,
           phone: responsibleForm.getValues().phone,
@@ -996,27 +999,59 @@ export function GroupRegistrationDialog({
                       </div>
                     </div>
 
-                    {/* Shirt Size - only if event has shirt */}
+                    {/* Shirt - always ask if they want it */}
                     {event?.hasShirt !== false && (
-                    <div className="space-y-1">
-                      <Label className="text-xs">Talla de Camiseta</Label>
-                      <Select
-                        value={participant.shirtSize}
-                        onValueChange={(val) =>
-                          updateParticipant(participant.id, "shirtSize", val)
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Seleccionar talla" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="S">S</SelectItem>
-                          <SelectItem value="M">M</SelectItem>
-                          <SelectItem value="L">L</SelectItem>
-                          <SelectItem value="XL">XL</SelectItem>
-                          <SelectItem value="XXL">XXL</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="space-y-2">
+                      <div className={`${event?.shirtIncluded === false ? 'bg-amber-50 border-2 border-amber-300' : 'bg-blue-50 border-2 border-blue-300'} rounded-lg p-3`}>
+                        <p className="text-xs font-semibold ${event?.shirtIncluded === false ? 'text-amber-800' : 'text-blue-800'}">
+                          {event?.shirtIncluded === false
+                            ? `Franela/Camiseta - Opcional (+$${event?.shirtPrice || 0} USD)`
+                            : 'Franela/Camiseta - Incluida'}
+                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => { updateParticipant(participant.id, "wantsShirt", "true"); updateParticipant(participant.id, "shirtSize", "M"); }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                              participant.wantsShirt === "true"
+                                ? "bg-green-500 text-white border-2 border-green-600"
+                                : "bg-white text-gray-600 border-2 border-gray-300"
+                            }`}
+                          >
+                            Si
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { updateParticipant(participant.id, "wantsShirt", "false"); updateParticipant(participant.id, "shirtSize", ""); }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                              participant.wantsShirt !== "true"
+                                ? "bg-red-500 text-white border-2 border-red-600"
+                                : "bg-white text-gray-600 border-2 border-gray-300"
+                            }`}
+                          >
+                            No
+                          </button>
+                        </div>
+                      </div>
+                      {participant.wantsShirt === "true" && (
+                        <Select
+                          value={participant.shirtSize}
+                          onValueChange={(val) =>
+                            updateParticipant(participant.id, "shirtSize", val)
+                          }
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Seleccionar talla" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="S">S</SelectItem>
+                            <SelectItem value="M">M</SelectItem>
+                            <SelectItem value="L">L</SelectItem>
+                            <SelectItem value="XL">XL</SelectItem>
+                            <SelectItem value="XXL">XXL</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                     )}
 
