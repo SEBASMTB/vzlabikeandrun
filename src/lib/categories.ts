@@ -699,9 +699,9 @@ export function parseEventCategories(
   categoriesStr: string | null | undefined,
   sportType: string = "running"
 ): CategoryOption[] {
-  // If no categories string, return empty array — no auto-fallback
+  // If no categories string, use default categories for the sport type
   if (!categoriesStr || !categoriesStr.trim()) {
-    return [];
+    return getCategoriesForSport(sportType, "10");
   }
 
   try {
