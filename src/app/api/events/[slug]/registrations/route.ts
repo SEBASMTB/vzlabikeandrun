@@ -64,6 +64,7 @@ export async function GET(
         sportType: true,
         categories: true,
         maxParticipants: true,
+        hasShirt: true,
       },
     });
 
@@ -98,6 +99,8 @@ export async function GET(
             },
           },
         },
+        wantsShirt: true,
+        shirtSize: true,
       },
     });
 
@@ -138,6 +141,7 @@ export async function GET(
         slug: event.slug,
         sportType: event.sportType,
         maxParticipants: event.maxParticipants,
+        hasShirt: event.hasShirt,
       },
       totalRegistrations: registrations.length,
       categories: categoriesWithRegistrations,

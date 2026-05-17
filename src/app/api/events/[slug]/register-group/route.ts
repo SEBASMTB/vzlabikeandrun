@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { sendPreRegistrationEmail } from "@/lib/email";
 import { calculateAge, parseEventCategories, validateMTBCategory } from "@/lib/categories";
@@ -14,6 +14,20 @@ interface GroupParticipant {
   wantsShirt?: boolean;
   category: string;
   mtbProfile?: string;
+}
+
+// Retry wrapper for cold start DB initialization
+async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      console.error(`[GroupRegister] Attempt ${attempt + 1} failed:`, error);
+      if (attempt === retries) throw error;
+      await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+    }
+  }
+  throw new Error("Max retries exceeded");
 }
 
 export async function POST(
@@ -94,6 +108,9 @@ export async function POST(
       }
     }
 
+    // Use getDb() for reliable initialization
+    const db = await getDb();
+
     // Check event exists
     const event = await db.event.findUnique({ where: { slug } });
     if (!event) {
@@ -162,10 +179,9 @@ export async function POST(
       }
     }
 
-    // Create all registrations in a transaction
+    // Create all registrations (no bibNumber — assigned manually by admin later)
     const createdRegistrations: Array<{
       id: string;
-      bibNumber: number | null;
       firstName: string;
       lastName: string;
       category: string;
@@ -174,36 +190,34 @@ export async function POST(
     for (let i = 0; i < participants.length; i++) {
       const p = participants[i];
 
-      // Get fresh count for bib assignment
-      const latestCount = await db.registration.count({ where: { eventId: event.id } });
-      const bibNumber = latestCount + 1;
-
-      const registration = await db.registration.create({
-        data: {
-          eventId: event.id,
-          firstName: p.firstName,
-          lastName: p.lastName,
-          email: email,
-          phone: phone,
-          idNumber: p.idNumber.toUpperCase().trim(),
-          gender: p.gender,
-          dateOfBirth: p.dateOfBirth,
-          shirtSize: p.wantsShirt ? (p.shirtSize || "") : "",
-          category: p.category,
-          team: "",
-          emergencyContact: emergencyContact || "",
-          emergencyPhone: emergencyPhone || "",
-          paymentMethod: paymentMethod || "",
-          paymentRef: paymentRef || "",
-          waiverAccepted: waiverAccepted || false,
-          status: "pending",
-          bibNumber,
-        },
-      });
+      const registration = await withRetry(() =>
+        db.registration.create({
+          data: {
+            eventId: event.id,
+            firstName: p.firstName,
+            lastName: p.lastName,
+            email: email,
+            phone: phone,
+            idNumber: p.idNumber.toUpperCase().trim(),
+            gender: p.gender,
+            dateOfBirth: p.dateOfBirth,
+            shirtSize: p.wantsShirt ? (p.shirtSize || "") : "",
+            category: p.category,
+            team: "",
+            emergencyContact: emergencyContact || "",
+            emergencyPhone: emergencyPhone || "",
+            paymentMethod: paymentMethod || "",
+            paymentRef: paymentRef || "",
+            waiverAccepted: waiverAccepted || false,
+            status: "pending",
+            wantsShirt: p.wantsShirt !== undefined ? p.wantsShirt : true,
+            mtbProfile: p.mtbProfile || "",
+          },
+        })
+      );
 
       createdRegistrations.push({
         id: registration.id,
-        bibNumber: registration.bibNumber,
         firstName: registration.firstName,
         lastName: registration.lastName,
         category: registration.category,
@@ -254,7 +268,6 @@ export async function POST(
         count: participants.length,
         registrations: createdRegistrations.map((r) => ({
           id: r.id,
-          bibNumber: r.bibNumber,
           firstName: r.firstName,
           lastName: r.lastName,
           category: r.category,
@@ -263,9 +276,9 @@ export async function POST(
       { status: 201 }
     );
   } catch (error) {
-    console.error("Group registration error:", error);
+    console.error("[GroupRegister] Error processing group registration:", error);
     return NextResponse.json(
-      { error: "Error al procesar la inscripción grupal" },
+      { error: "Error al procesar la inscripción grupal. Intenta de nuevo en unos segundos." },
       { status: 500 }
     );
   }

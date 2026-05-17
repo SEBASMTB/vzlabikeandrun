@@ -9,10 +9,10 @@ import {
   Trophy,
   Search,
   Filter,
-  Download,
   ChevronDown,
   ChevronUp,
   Calendar,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,8 @@ interface RegistrationItem {
       hasSizes: boolean;
     };
   }>;
+  wantsShirt?: boolean;
+  shirtSize?: string;
 }
 
 interface CategoryGroup {
@@ -56,6 +58,7 @@ interface EventInfo {
   slug: string;
   sportType: string;
   maxParticipants: number;
+  hasShirt?: boolean;
 }
 
 interface RegistrationsData {
@@ -74,6 +77,7 @@ export default function InscritosPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [genderFilter, setGenderFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
   >({});
@@ -120,6 +124,76 @@ export default function InscritosPage() {
     setExpandedCategories({});
   };
 
+  // CSV export with extras columns
+  const exportCSV = () => {
+    if (!data) return;
+
+    // Collect all unique extra names across all registrations
+    const allExtraNames = new Set<string>();
+    for (const cat of data.categories) {
+      for (const r of cat.registrations) {
+        if (r.regExtras) {
+          for (const re of r.regExtras) {
+            allExtraNames.add(re.eventExtra.name);
+          }
+        }
+      }
+    }
+    const extraNamesArray = Array.from(allExtraNames);
+
+    const rows: string[] = [
+      [
+        "#",
+        "Nombre",
+        "Apellido",
+        "Cedula",
+        "Fecha de Nacimiento",
+        "Categoria",
+        "Franela",
+        "Talla",
+        ...extraNamesArray.map((n) => `Extra: ${n}`),
+      ].join(","),
+    ];
+    let counter = 1;
+    for (const cat of data.categories) {
+      for (const r of cat.registrations) {
+        // Build extras map for this registration
+        const extrasMap: Record<string, string> = {};
+        if (r.regExtras) {
+          for (const re of r.regExtras) {
+            const label = re.eventExtra.hasSizes && re.selectedSize
+              ? `${re.selectedSize}`
+              : "Sí";
+            extrasMap[re.eventExtra.name] = label;
+          }
+        }
+
+        rows.push(
+          [
+            counter++,
+            `"${r.firstName}"`,
+            `"${r.lastName}"`,
+            `"${r.idNumber || ""}"`,
+            `"${r.dateOfBirth || ""}"`,
+            `"${r.category}"`,
+            r.wantsShirt === false ? `"No"` : `"Si"`,
+            `"${r.shirtSize || ""}"`,
+            ...extraNamesArray.map((n) => `"${extrasMap[n] || ""}"`),
+          ].join(",")
+        );
+      }
+    }
+    const blob = new Blob(["\uFEFF" + rows.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `inscritos-${data.event.slug}-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Filter registrations based on search and gender
   const filteredCategories = data
     ? data.categories
@@ -146,79 +220,16 @@ export default function InscritosPage() {
 
           return { ...cat, registrations: regs, count: regs.length };
         })
-        .filter((cat) => cat.count > 0)
+        .filter((cat) => {
+          if (categoryFilter !== "all" && cat.category !== categoryFilter) return false;
+          return cat.count > 0;
+        })
     : [];
 
   const totalFiltered = filteredCategories.reduce(
     (sum, cat) => sum + cat.count,
     0
   );
-
-  // CSV export
-  const exportCSV = () => {
-    if (!data) return;
-
-    // Collect all unique extra names across all registrations
-    const allExtraNames = new Set<string>();
-    for (const cat of data.categories) {
-      for (const r of cat.registrations) {
-        if (r.regExtras) {
-          for (const re of r.regExtras) {
-            allExtraNames.add(re.eventExtra.name);
-          }
-        }
-      }
-    }
-    const extraNamesArray = Array.from(allExtraNames);
-
-    const rows: string[] = [
-      [
-        "#",
-        "Nombre",
-        "Apellido",
-        "Cedula",
-        "Fecha de Nacimiento",
-        "Categoria",
-        ...extraNamesArray.map((n) => `Extra: ${n}`),
-      ].join(","),
-    ];
-    let counter = 1;
-    for (const cat of data.categories) {
-      for (const r of cat.registrations) {
-        // Build extras map for this registration
-        const extrasMap: Record<string, string> = {};
-        if (r.regExtras) {
-          for (const re of r.regExtras) {
-            const label = re.eventExtra.hasSizes && re.selectedSize
-              ? `${re.selectedSize}`
-              : "Sí";
-            extrasMap[re.eventExtra.name] = label;
-          }
-        }
-
-        rows.push(
-          [
-            counter++,
-            `"${r.firstName}"`,
-            `"${r.lastName}"`,
-            `"${r.idNumber || ""}"`,
-            `"${r.dateOfBirth || ""}"`,
-            `"${r.category}"`,
-            ...extraNamesArray.map((n) => `"${extrasMap[n] || ""}"`),
-          ].join(",")
-        );
-      }
-    }
-    const blob = new Blob(["\uFEFF" + rows.join("\n")], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `inscritos-${data.event.slug}-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   if (loading) {
     return (
@@ -351,8 +362,33 @@ export default function InscritosPage() {
                 </SelectContent>
               </Select>
 
-              {/* Expand/Collapse */}
+              {/* Category Filter */}
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <Trophy className="size-4 mr-2" />
+                  <SelectValue placeholder="Categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las categorías</SelectItem>
+                  {data.categories.map((cat) => (
+                    <SelectItem key={cat.category} value={cat.category}>
+                      {cat.category} ({cat.count})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Expand/Collapse + Export */}
               <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportCSV}
+                  className="text-xs bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
+                >
+                  <Download className="size-3 mr-1" />
+                  Descargar CSV
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -372,20 +408,9 @@ export default function InscritosPage() {
                   Colapsar
                 </Button>
               </div>
-
-              {/* Export */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportCSV}
-                className="text-xs"
-              >
-                <Download className="size-3 mr-1" />
-                Exportar CSV
-              </Button>
             </div>
 
-            {searchTerm || genderFilter !== "all" ? (
+            {searchTerm || genderFilter !== "all" || categoryFilter !== "all" ? (
               <p className="text-xs text-muted-foreground mt-2">
                 Mostrando {totalFiltered} de {data.totalRegistrations} inscritos
               </p>
@@ -456,19 +481,20 @@ export default function InscritosPage() {
                 {expandedCategories[cat.category] !== false && (
                   <div className="border-t overflow-x-auto">
                     {/* Table Header */}
-                    <div className="hidden sm:grid sm:grid-cols-[3rem_1fr_1fr_7rem_6rem] bg-gray-50 px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <div className="hidden sm:grid sm:grid-cols-[3rem_1fr_1fr_7rem_6rem_5rem] bg-gray-50 px-5 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       <div>#</div>
                       <div>Nombre</div>
                       <div>Apellido</div>
                       <div>Cedula</div>
                       <div>F. Nacimiento</div>
+                      {data?.event?.hasShirt !== false && <div>Franela</div>}
                     </div>
 
                     {/* Rows */}
                     {cat.registrations.map((reg, idx) => (
                       <div
                         key={reg.id}
-                        className={`grid grid-cols-2 sm:grid-cols-[3rem_1fr_1fr_7rem_6rem] px-5 py-3 items-center ${
+                        className={`grid grid-cols-2 sm:grid-cols-[3rem_1fr_1fr_7rem_6rem_5rem] px-5 py-3 items-center ${
                           idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"
                         } hover:bg-red-50/30 transition-colors`}
                       >
@@ -487,6 +513,17 @@ export default function InscritosPage() {
                         <div className="text-xs text-muted-foreground">
                           {reg.dateOfBirth || "—"}
                         </div>
+                        {data?.event?.hasShirt !== false && (
+                          <div className="text-xs text-muted-foreground hidden sm:block">
+                            {reg.wantsShirt === false ? (
+                              <span className="text-gray-400">No</span>
+                            ) : reg.shirtSize ? (
+                              <span className="font-medium text-green-700 bg-green-50 px-1.5 py-0.5 rounded">{reg.shirtSize}</span>
+                            ) : (
+                              <span className="text-amber-600">—</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

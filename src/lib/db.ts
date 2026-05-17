@@ -35,6 +35,8 @@ const SEED_EVENTS = [
     ageCalcMode: "event_day",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: true,
+    shirtPrice: 0,
   },
   {
     id: "evt-campana-admirable-001",
@@ -62,6 +64,8 @@ const SEED_EVENTS = [
     ageCalcMode: "calendar_year",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: true,
+    shirtPrice: 0,
   },
   {
     id: "cmouqk7300000peaj68nvak7u",
@@ -89,6 +93,8 @@ const SEED_EVENTS = [
     ageCalcMode: "calendar_year",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: true,
+    shirtPrice: 0,
   },
   {
     id: "cmouqk7320001peaj38mchqx3",
@@ -116,6 +122,8 @@ const SEED_EVENTS = [
     ageCalcMode: "calendar_year",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: false,
+    shirtPrice: 15,
   },
   {
     id: "cmouqk7330002peajacov64kx",
@@ -143,6 +151,8 @@ const SEED_EVENTS = [
     ageCalcMode: "calendar_year",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: true,
+    shirtPrice: 0,
   },
   {
     id: "cmouqk7340003peajm6kd9t8x",
@@ -170,6 +180,8 @@ const SEED_EVENTS = [
     ageCalcMode: "calendar_year",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: true,
+    shirtPrice: 0,
   },
   {
     id: "cmouqk7350004peajb9ekzxqd",
@@ -197,6 +209,8 @@ const SEED_EVENTS = [
     ageCalcMode: "calendar_year",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: false,
+    shirtPrice: 20,
   },
   {
     id: "cmouqk7360005peajp7h5ns41",
@@ -224,6 +238,8 @@ const SEED_EVENTS = [
     ageCalcMode: "calendar_year",
     categoryInterval: "10",
     hasShirt: true,
+    shirtIncluded: true,
+    shirtPrice: 0,
   },
 ];
 
@@ -256,6 +272,8 @@ CREATE TABLE IF NOT EXISTS "Event" (
     "ageCalcMode" TEXT NOT NULL DEFAULT 'calendar_year',
     "categoryInterval" TEXT NOT NULL DEFAULT '10',
     "hasShirt" BOOLEAN NOT NULL DEFAULT 1,
+    "shirtIncluded" BOOLEAN NOT NULL DEFAULT 1,
+    "shirtPrice" REAL NOT NULL DEFAULT 0,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
@@ -281,6 +299,7 @@ CREATE TABLE IF NOT EXISTS "Registration" (
     "status" TEXT NOT NULL DEFAULT 'pending',
     "waiverAccepted" BOOLEAN NOT NULL DEFAULT 0,
     "bibNumber" INTEGER,
+    "wantsShirt" BOOLEAN NOT NULL DEFAULT 1,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "mtbProfile" TEXT NOT NULL DEFAULT '',
     FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE
@@ -378,6 +397,8 @@ const EXPECTED_COLUMNS: Record<string, Record<string, string>> = {
     ageCalcMode: "TEXT NOT NULL DEFAULT 'calendar_year'",
     categoryInterval: "TEXT NOT NULL DEFAULT '10'",
     hasShirt: 'BOOLEAN NOT NULL DEFAULT 1',
+    shirtIncluded: 'BOOLEAN NOT NULL DEFAULT 1',
+    shirtPrice: 'REAL NOT NULL DEFAULT 0',
     createdAt: 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
     updatedAt: 'DATETIME NOT NULL',
   },
@@ -401,6 +422,7 @@ const EXPECTED_COLUMNS: Record<string, Record<string, string>> = {
     status: "TEXT NOT NULL DEFAULT 'pending'",
     waiverAccepted: 'BOOLEAN NOT NULL DEFAULT 0',
     bibNumber: 'INTEGER',
+    wantsShirt: 'BOOLEAN NOT NULL DEFAULT 1',
     createdAt: 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
     mtbProfile: "TEXT NOT NULL DEFAULT ''",
   },
@@ -557,17 +579,22 @@ function createPrismaClient(): PrismaClient {
     return new PrismaClient({ adapter })
   }
 
-  // 3. DATABASE_URL – local file
+  // 3. DATABASE_URL – local file (only if path seems valid)
   if (dbUrl.startsWith('file:')) {
-    const adapter = new PrismaLibSQL({
-      url: dbUrl,
-      concurrency: 10,
-    })
-    return new PrismaClient({ adapter })
+    const filePath = dbUrl.replace('file:', '')
+    // Skip if path looks like a local dev path that won't exist in production
+    const looksLikeLocalDev = filePath.includes('/home/') || filePath.includes('/Users/')
+    if (!looksLikeLocalDev) {
+      const adapter = new PrismaLibSQL({
+        url: dbUrl,
+        concurrency: 10,
+      })
+      return new PrismaClient({ adapter })
+    }
   }
 
-  // 4. Last resort: /tmp in production
-  if (process.env.NODE_ENV === 'production') {
+  // 4. Production fallback: /tmp (ephemeral but works for demo)
+  if (process.env.NODE_ENV === 'production' || tursoUrl === '' && dbUrl === '') {
     const adapter = new PrismaLibSQL({
       url: 'file:/tmp/vzlabike.db',
       concurrency: 10,
@@ -575,7 +602,7 @@ function createPrismaClient(): PrismaClient {
     return new PrismaClient({ adapter })
   }
 
-  // Fallback: direct PrismaClient (local dev)
+  // 5. Fallback: direct PrismaClient (local dev)
   return new PrismaClient()
 }
 
@@ -604,31 +631,64 @@ export async function getDb(): Promise<PrismaClient> {
 }
 
 // Direct export for backward compatibility (lazy init on first use)
-// This avoids the Proxy overhead while keeping the same API
-export const db = new Proxy(_prismaClient, {
-  get(target, prop) {
-    if (prop === 'then' || prop === 'toJSON' || typeof prop === 'symbol') {
-      return Reflect.get(target, prop);
-    }
-    const value = (target as any)[prop];
-    if (typeof value !== 'function') return value;
+// Uses deep Proxy to intercept db.event.findMany() style calls
+function createInitProxy(target: PrismaClient): PrismaClient {
+  return new Proxy(target, {
+    get(obj, prop) {
+      if (prop === 'then' || prop === 'toJSON' || typeof prop === 'symbol') {
+        return Reflect.get(obj, prop);
+      }
+      const value = (obj as any)[prop];
 
-    // In production, ensure DB is initialized before any Prisma operation
-    if (process.env.NODE_ENV === 'production') {
-      return function(this: any, ...args: any[]) {
-        const self = this === db ? target : this;
-        if (!globalForPrisma.dbSeeded) {
-          if (!dbReadyPromise) {
-            dbReadyPromise = initAndSeed(target);
-          }
-          return dbReadyPromise.then(() => value.apply(self, args));
+      // If it's a function (e.g. db.$queryRaw), wrap it
+      if (typeof value === 'function') {
+        if (process.env.NODE_ENV === 'production') {
+          return function(this: any, ...args: any[]) {
+            const self = this === obj ? target : this;
+            if (!globalForPrisma.dbSeeded) {
+              if (!dbReadyPromise) {
+                dbReadyPromise = initAndSeed(target);
+              }
+              return dbReadyPromise.then(() => value.apply(self, args));
+            }
+            return value.apply(self, args);
+          };
         }
-        return value.apply(self, args);
-      };
+        return value.bind(target);
+      }
+
+      // If it's an object (e.g. db.event, db.registration), return a nested Proxy
+      // so that db.event.findMany() also awaits initialization
+      if (value && typeof value === 'object' && process.env.NODE_ENV === 'production') {
+        return new Proxy(value, {
+          get(delegate, subProp) {
+            if (subProp === 'then' || subProp === 'toJSON' || typeof subProp === 'symbol') {
+              return Reflect.get(delegate, subProp);
+            }
+            const subValue = (delegate as any)[subProp];
+            if (typeof subValue === 'function') {
+              return function(this: any, ...args: any[]) {
+                const self = this === delegate ? value : this;
+                if (!globalForPrisma.dbSeeded) {
+                  if (!dbReadyPromise) {
+                    dbReadyPromise = initAndSeed(target);
+                  }
+                  return dbReadyPromise.then(() => subValue.apply(self, args));
+                }
+                return subValue.apply(self, args);
+              };
+            }
+            return subValue;
+          }
+        });
+      }
+
+      return value;
     }
-    return value.bind(target);
-  }
-});
+  });
+}
+
+export const db = createInitProxy(_prismaClient);
 
 // Auto-init in production
 if (process.env.NODE_ENV === 'production') {

@@ -53,6 +53,7 @@ import {
   Package,
   ChevronDown,
   ChevronUp,
+  AlertTriangle,
 } from "lucide-react";
 
 // ─── Types & Constants ───────────────────────────────────────────────────────
@@ -180,7 +181,7 @@ function createEmptyParticipant(): Participant {
     gender: "",
     dateOfBirth: "",
     shirtSize: "",
-    wantsShirt: "",
+    wantsShirt: "true",
     category: "",
     profile: "",
     autoFilled: false,
@@ -209,7 +210,7 @@ export function GroupRegistrationDialog({
   const [registrationSuccess, setRegistrationSuccess] = useState<{
     count: number;
     payLabel: string;
-    registrations: Array<{ bibNumber: number; firstName: string; lastName: string }>;
+    totalPaid: number;
   } | null>(null);
   const { toast } = useToast();
 
@@ -615,7 +616,7 @@ export function GroupRegistrationDialog({
         setRegistrationSuccess({
           count: data.count,
           payLabel,
-          registrations: data.registrations || [],
+          totalPaid: totalPrice,
         });
       } else {
         toast({
@@ -714,24 +715,20 @@ export function GroupRegistrationDialog({
               </p>
             </motion.div>
 
-            {/* Bib Numbers */}
+            {/* Payment summary */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
               className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-4 space-y-2"
             >
-              <p className="text-sm font-medium text-green-700">Dorsales asignados:</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {registrationSuccess.registrations.map(
-                  (r: { bibNumber: number; firstName: string; lastName: string }, i: number) => (
-                    <div key={i} className="bg-white border border-green-200 rounded-lg px-3 py-2">
-                      <span className="text-2xl font-black text-green-700">#{r.bibNumber}</span>
-                      <p className="text-[10px] text-green-600">{r.firstName} {r.lastName}</p>
-                    </div>
-                  )
-                )}
+              <p className="text-sm font-medium text-green-700">Inscripcion grupal exitosa:</p>
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-4xl font-black text-green-700">${registrationSuccess.totalPaid.toFixed(0)} USD</span>
               </div>
+              <p className="text-xs text-green-600">
+                {registrationSuccess.count} participante{registrationSuccess.count !== 1 ? "s" : ""} via {registrationSuccess.payLabel}
+              </p>
             </motion.div>
 
             {/* Info cards */}
@@ -888,9 +885,14 @@ export function GroupRegistrationDialog({
                     {...responsibleForm.register("email")}
                   />
                   {responsibleForm.formState.errors.email && (
-                    <p className="text-sm text-destructive">
-                      {responsibleForm.formState.errors.email.message}
-                    </p>
+                    <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-2 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="size-5 text-red-500 shrink-0" />
+                        <p className="text-base font-bold text-red-700">
+                          {responsibleForm.formState.errors.email.message}
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </div>
 
@@ -905,9 +907,14 @@ export function GroupRegistrationDialog({
                     {...responsibleForm.register("phone")}
                   />
                   {responsibleForm.formState.errors.phone && (
-                    <p className="text-sm text-destructive">
-                      {responsibleForm.formState.errors.phone.message}
-                    </p>
+                    <div className="bg-red-50 border-2 border-red-400 rounded-xl p-4 mt-2 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="size-5 text-red-500 shrink-0" />
+                        <p className="text-base font-bold text-red-700">
+                          {responsibleForm.formState.errors.phone.message}
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1094,38 +1101,39 @@ export function GroupRegistrationDialog({
                       </div>
                     </div>
 
-                    {/* Shirt - only if event has shirt */}
+                    {/* Shirt - always ask if they want it */}
                     {event?.hasShirt !== false && (
-                    <div className="space-y-1">
-                      <Label className="text-xs">
-                        {event?.sportType === "mtb" ? "Jersey" : "Camiseta/Franela"}
-                      </Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => updateParticipant(participant.id, "wantsShirt", "true")}
-                          className={`p-2 rounded-lg border-2 text-center transition-all text-xs ${
-                            participant.wantsShirt === "true"
-                              ? "border-red-500 bg-red-50 text-red-700"
-                              : "border-gray-200 hover:border-gray-300 text-muted-foreground"
-                          }`}
-                        >
-                          <span className="font-bold">Si</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            updateParticipant(participant.id, "wantsShirt", "false");
-                            updateParticipant(participant.id, "shirtSize", "");
-                          }}
-                          className={`p-2 rounded-lg border-2 text-center transition-all text-xs ${
-                            participant.wantsShirt === "false"
-                              ? "border-gray-400 bg-gray-50 text-gray-700"
-                              : "border-gray-200 hover:border-gray-300 text-muted-foreground"
-                          }`}
-                        >
-                          <span className="font-bold">No</span>
-                        </button>
+                    <div className="space-y-2">
+                      <div className={`${event?.shirtIncluded === false ? 'bg-amber-50 border-2 border-amber-300' : 'bg-blue-50 border-2 border-blue-300'} rounded-lg p-3`}>
+                        <p className={`text-xs font-semibold ${event?.shirtIncluded === false ? 'text-amber-800' : 'text-blue-800'}`}>
+                          {event?.shirtIncluded === false
+                            ? `Franela/Camiseta - Opcional (+$${event?.shirtPrice || 0} USD)`
+                            : 'Franela/Camiseta - Incluida'}
+                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => { updateParticipant(participant.id, "wantsShirt", "true"); updateParticipant(participant.id, "shirtSize", "M"); }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                              participant.wantsShirt === "true"
+                                ? "bg-green-500 text-white border-2 border-green-600"
+                                : "bg-white text-gray-600 border-2 border-gray-300"
+                            }`}
+                          >
+                            Si
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { updateParticipant(participant.id, "wantsShirt", "false"); updateParticipant(participant.id, "shirtSize", ""); }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                              participant.wantsShirt !== "true"
+                                ? "bg-red-500 text-white border-2 border-red-600"
+                                : "bg-white text-gray-600 border-2 border-gray-300"
+                            }`}
+                          >
+                            No
+                          </button>
+                        </div>
                       </div>
                       {participant.wantsShirt === "true" && (
                         <Select
@@ -1405,6 +1413,9 @@ export function GroupRegistrationDialog({
                 <p className="text-sm opacity-80">
                   {participants.length} participante
                   {participants.length !== 1 ? "s" : ""} × ${event?.price} USD
+                  {shirtExtraCost > 0 && (
+                    <> + {shirtCount} franela{shirtCount !== 1 ? "s" : ""} × ${event?.shirtPrice || 0} USD</>
+                  )}
                 </p>
               </div>
 
