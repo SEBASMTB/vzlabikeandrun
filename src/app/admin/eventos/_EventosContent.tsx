@@ -222,6 +222,9 @@ export default function AdminEventosPage() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
+  // ---- Selected Preset ----
+  const [selectedPresetId, setSelectedPresetId] = useState("");
+
   // ---- Extras Opcionales State ----
   const [extrasList, setExtrasList] = useState<Array<{
     id: string;
@@ -354,7 +357,10 @@ export default function AdminEventosPage() {
           ...prev,
           categories: serializeEventCategories(defaultPreset.categories),
         }));
+        setSelectedPresetId(defaultPreset.id);
       }
+    } else {
+      setSelectedPresetId("");
     }
   };
 
@@ -362,9 +368,11 @@ export default function AdminEventosPage() {
     const presets = getCategoryPresets(formData.sportType);
     const preset = presets.find(p => p.id === presetId);
     if (preset) {
+      setSelectedPresetId(presetId);
       setFormData((prev) => ({
         ...prev,
         categories: serializeEventCategories(preset.categories),
+        categoryInterval: preset.categories.length > 0 && preset.categories[0] ? "10" : prev.categoryInterval,
       }));
     }
   };
@@ -1012,10 +1020,10 @@ export default function AdminEventosPage() {
             ) : (
               <>
             {/* Preset Selector */}
-            {availablePresets.length > 1 && (
+            {availablePresets.length > 0 && (
               <div className="sm:col-span-2">
                 <Label>Plantilla de Categorías</Label>
-                <Select onValueChange={handlePresetChange}>
+                <Select value={selectedPresetId} onValueChange={handlePresetChange}>
                   <SelectTrigger className="mt-1 w-full">
                     <SelectValue placeholder="Selecciona una plantilla..." />
                   </SelectTrigger>
