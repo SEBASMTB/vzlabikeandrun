@@ -11,6 +11,7 @@ import {
   Image as ImageIcon,
   Upload,
   X,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -221,6 +222,24 @@ export default function AdminEventosPage() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
+  // ---- Extras Opcionales State ----
+  const [extrasList, setExtrasList] = useState<Array<{
+    id: string;
+    name: string;
+    price: number;
+    hasSizes: boolean;
+    sizes: string;
+    included: boolean;
+    sortOrder: number;
+  }>>([]);
+  const [newExtraName, setNewExtraName] = useState("");
+  const [newExtraPrice, setNewExtraPrice] = useState(0);
+  const [newExtraHasSizes, setNewExtraHasSizes] = useState(false);
+  const [newExtraIncluded, setNewExtraIncluded] = useState(false);
+  const [newExtraSizes, setNewExtraSizes] = useState<string[]>([]);
+  const [extrasLoading, setExtrasLoading] = useState(false);
+  const [deletedExtraIds, setDeletedExtraIds] = useState<string[]>([]);
+
   const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
@@ -248,8 +267,30 @@ export default function AdminEventosPage() {
     setDialogOpen(true);
   };
 
+  const fetchExtras = async (slug: string) => {
+    try {
+      setExtrasLoading(true);
+      const res = await fetch(`/api/events/${slug}/extras`);
+      if (res.ok) {
+        const data = await res.json();
+        setExtrasList(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      // Silently handle
+    } finally {
+      setExtrasLoading(false);
+    }
+  };
+
   const handleEdit = (event: Event) => {
     setEditingEvent(event);
+    setExtrasList([]);
+    setDeletedExtraIds([]);
+    setNewExtraName("");
+    setNewExtraPrice(0);
+    setNewExtraHasSizes(false);
+    setNewExtraIncluded(false);
+    setNewExtraSizes([]);
     setFormData({
       title: event.title,
       slug: event.slug,
@@ -278,6 +319,8 @@ export default function AdminEventosPage() {
     });
     setFormError("");
     setDialogOpen(true);
+    // Fetch extras for this event
+    fetchExtras(event.slug);
   };
 
   const handleDelete = (event: Event) => {
@@ -503,6 +546,37 @@ export default function AdminEventosPage() {
       });
 
       if (res.ok) {
+        // Save extras after successful event save (only when editing)
+        if (editingEvent) {
+          const eventSlug = finalSlug;
+          try {
+            // Delete extras that were removed by user
+            for (const extraId of deletedExtraIds) {
+              if (!extraId.startsWith("new-")) {
+                await fetch(`/api/events/${eventSlug}/extras/${extraId}`, { method: "DELETE" });
+              }
+            }
+            // POST new extras
+            for (const extra of extrasList) {
+              if (extra.id.startsWith("new-")) {
+                await fetch(`/api/events/${eventSlug}/extras`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    name: extra.name,
+                    price: extra.price,
+                    hasSizes: extra.hasSizes,
+                    sizes: extra.sizes,
+                    included: extra.included,
+                    sortOrder: extra.sortOrder,
+                  }),
+                });
+              }
+            }
+          } catch {
+            // Non-blocking: extras save failure should not block event save
+          }
+        }
         setDialogOpen(false);
         fetchEvents();
       } else {
@@ -1252,6 +1326,194 @@ export default function AdminEventosPage() {
                 </button>
               </div>
             </div>
+
+            {/* ---- EXTRAS OPCIONALES ---- */}
+            <SectionTitle>
+              <span className="flex items-center gap-2">
+                <Package className="size-4" />
+                Extras Opcionales
+              </span>
+            </SectionTitle>
+
+            {editingEvent ? (
+              <div className="sm:col-span-2 border rounded-lg p-4 space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Agrega productos opcionales que los participantes pueden elegir al inscribirse (ej: medalla, hidratación, etc.).
+                </p>
+
+                {/* Current extras list */}
+                {extrasList.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Extras actuales ({extrasList.length})</p>
+                    <div className="max-h-48 overflow-y-auto space-y-1.5">
+                      {extrasList.map((extra, idx) => (
+                        <div
+                          key={extra.id}
+                          className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm"
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <span className="font-medium truncate">{extra.name}</span>
+                            <Badge variant={extra.included ? "default" : "outline"} className={cn("shrink-0 text-xs", extra.included ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "")}>
+                              {extra.included ? "Incluido" : `$${extra.price.toFixed(0)}`}
+                            </Badge>
+                            {extra.hasSizes && (
+                              <Badge variant="secondary" className="shrink-0 text-xs">
+                                Tallas: {(() => { try { return JSON.parse(extra.sizes || "[]").join(", "); } catch { return extra.sizes; } })()}
+                              </Badge>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 text-muted-foreground hover:text-red-600 shrink-0"
+                            onClick={() => {
+                              setDeletedExtraIds((prev) => [...prev, extra.id]);
+                              setExtrasList((prev) => prev.filter((e) => e.id !== extra.id));
+                            }}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {extrasLoading && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin" />
+                    Cargando extras...
+                  </div>
+                )}
+
+                {/* Add new extra form */}
+                <div className="border-t pt-3 space-y-3">
+                  <p className="text-sm font-medium">Agregar nuevo extra</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="extraName" className="text-xs">Nombre del extra</Label>
+                      <Input
+                        id="extraName"
+                        value={newExtraName}
+                        onChange={(e) => setNewExtraName(e.target.value)}
+                        placeholder="Ej: Medalla finisher"
+                        className="mt-1 h-9 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="extraPrice" className="text-xs">Precio (USD)</Label>
+                      <div className="relative mt-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-medium">$</span>
+                        <Input
+                          id="extraPrice"
+                          type="text"
+                          inputMode="decimal"
+                          value={newExtraIncluded ? "0" : (newExtraPrice || "")}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9.]/g, "");
+                            setNewExtraPrice(parseFloat(val) || 0);
+                          }}
+                          placeholder="0.00"
+                          disabled={newExtraIncluded}
+                          className="pl-7 h-9 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="extraHasSizes"
+                        checked={newExtraHasSizes}
+                        onCheckedChange={(checked) => {
+                          setNewExtraHasSizes(checked === true);
+                          if (!checked) setNewExtraSizes([]);
+                        }}
+                      />
+                      <Label htmlFor="extraHasSizes" className="text-xs cursor-pointer">¿Requiere tallas?</Label>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="extraIncluded"
+                        checked={newExtraIncluded}
+                        onCheckedChange={(checked) => {
+                          setNewExtraIncluded(checked === true);
+                          if (checked) setNewExtraPrice(0);
+                        }}
+                      />
+                      <Label htmlFor="extraIncluded" className="text-xs cursor-pointer">Incluido en inscripción</Label>
+                    </div>
+                  </div>
+
+                  {/* Sizes multi-select */}
+                  {newExtraHasSizes && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {["S", "M", "L", "XL", "XXL"].map((size) => (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => {
+                            setNewExtraSizes((prev) =>
+                              prev.includes(size)
+                                ? prev.filter((s) => s !== size)
+                                : [...prev, size]
+                            );
+                          }}
+                          className={cn(
+                            "px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                            newExtraSizes.includes(size)
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background text-muted-foreground border-gray-300 hover:border-primary"
+                          )}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!newExtraName.trim() || (newExtraHasSizes && newExtraSizes.length === 0)}
+                    onClick={() => {
+                      const newExtra = {
+                        id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                        name: newExtraName.trim(),
+                        price: newExtraIncluded ? 0 : newExtraPrice,
+                        hasSizes: newExtraHasSizes,
+                        sizes: newExtraHasSizes ? JSON.stringify(newExtraSizes) : "[]",
+                        included: newExtraIncluded,
+                        sortOrder: extrasList.length,
+                      };
+                      setExtrasList((prev) => [...prev, newExtra]);
+                      setNewExtraName("");
+                      setNewExtraPrice(0);
+                      setNewExtraHasSizes(false);
+                      setNewExtraIncluded(false);
+                      setNewExtraSizes([]);
+                    }}
+                    className="h-8 text-xs"
+                  >
+                    <Plus className="size-3.5 mr-1" />
+                    Agregar Extra
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="sm:col-span-2 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  <Package className="size-4 inline-block mr-1.5 -mt-0.5" />
+                  Los extras opcionales se configuran después de crear el evento.
+                  <br />
+                  <span className="text-xs">Guarda el evento y luego edítalo para agregar extras.</span>
+                </p>
+              </div>
+            )}
 
             {/* ---- ADDITIONAL INFO ---- */}
             <SectionTitle>Información Adicional</SectionTitle>
