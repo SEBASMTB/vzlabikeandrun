@@ -592,31 +592,64 @@ export async function getDb(): Promise<PrismaClient> {
 }
 
 // Direct export for backward compatibility (lazy init on first use)
-// This avoids the Proxy overhead while keeping the same API
-export const db = new Proxy(_prismaClient, {
-  get(target, prop) {
-    if (prop === 'then' || prop === 'toJSON' || typeof prop === 'symbol') {
-      return Reflect.get(target, prop);
-    }
-    const value = (target as any)[prop];
-    if (typeof value !== 'function') return value;
+// Uses deep Proxy to intercept db.event.findMany() style calls
+function createInitProxy(target: PrismaClient): PrismaClient {
+  return new Proxy(target, {
+    get(obj, prop) {
+      if (prop === 'then' || prop === 'toJSON' || typeof prop === 'symbol') {
+        return Reflect.get(obj, prop);
+      }
+      const value = (obj as any)[prop];
 
-    // In production, ensure DB is initialized before any Prisma operation
-    if (process.env.NODE_ENV === 'production') {
-      return function(this: any, ...args: any[]) {
-        const self = this === db ? target : this;
-        if (!globalForPrisma.dbSeeded) {
-          if (!dbReadyPromise) {
-            dbReadyPromise = initAndSeed(target);
-          }
-          return dbReadyPromise.then(() => value.apply(self, args));
+      // If it's a function (e.g. db.$queryRaw), wrap it
+      if (typeof value === 'function') {
+        if (process.env.NODE_ENV === 'production') {
+          return function(this: any, ...args: any[]) {
+            const self = this === obj ? target : this;
+            if (!globalForPrisma.dbSeeded) {
+              if (!dbReadyPromise) {
+                dbReadyPromise = initAndSeed(target);
+              }
+              return dbReadyPromise.then(() => value.apply(self, args));
+            }
+            return value.apply(self, args);
+          };
         }
-        return value.apply(self, args);
-      };
+        return value.bind(target);
+      }
+
+      // If it's an object (e.g. db.event, db.registration), return a nested Proxy
+      // so that db.event.findMany() also awaits initialization
+      if (value && typeof value === 'object' && process.env.NODE_ENV === 'production') {
+        return new Proxy(value, {
+          get(delegate, subProp) {
+            if (subProp === 'then' || subProp === 'toJSON' || typeof subProp === 'symbol') {
+              return Reflect.get(delegate, subProp);
+            }
+            const subValue = (delegate as any)[subProp];
+            if (typeof subValue === 'function') {
+              return function(this: any, ...args: any[]) {
+                const self = this === delegate ? value : this;
+                if (!globalForPrisma.dbSeeded) {
+                  if (!dbReadyPromise) {
+                    dbReadyPromise = initAndSeed(target);
+                  }
+                  return dbReadyPromise.then(() => subValue.apply(self, args));
+                }
+                return subValue.apply(self, args);
+              };
+            }
+            return subValue;
+          }
+        });
+      }
+
+      return value;
     }
-    return value.bind(target);
-  }
-});
+  });
+}
+
+export const db = createInitProxy(_prismaClient);
 
 // Auto-init in production
 if (process.env.NODE_ENV === 'production') {
