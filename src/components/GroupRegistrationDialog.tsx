@@ -205,7 +205,7 @@ export function GroupRegistrationDialog({
   const [registrationSuccess, setRegistrationSuccess] = useState<{
     count: number;
     payLabel: string;
-    registrations: Array<{ bibNumber: number; firstName: string; lastName: string }>;
+    totalPaid: number;
   } | null>(null);
   const { toast } = useToast();
 
@@ -520,7 +520,7 @@ export function GroupRegistrationDialog({
         setRegistrationSuccess({
           count: data.count,
           payLabel,
-          registrations: data.registrations || [],
+          totalPaid: totalPrice,
         });
       } else {
         toast({
@@ -611,24 +611,20 @@ export function GroupRegistrationDialog({
               </p>
             </motion.div>
 
-            {/* Bib Numbers */}
+            {/* Payment summary */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
               className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-4 space-y-2"
             >
-              <p className="text-sm font-medium text-green-700">Dorsales asignados:</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {registrationSuccess.registrations.map(
-                  (r: { bibNumber: number; firstName: string; lastName: string }, i: number) => (
-                    <div key={i} className="bg-white border border-green-200 rounded-lg px-3 py-2">
-                      <span className="text-2xl font-black text-green-700">#{r.bibNumber}</span>
-                      <p className="text-[10px] text-green-600">{r.firstName} {r.lastName}</p>
-                    </div>
-                  )
-                )}
+              <p className="text-sm font-medium text-green-700">Inscripcion grupal exitosa:</p>
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-4xl font-black text-green-700">${registrationSuccess.totalPaid.toFixed(0)} USD</span>
               </div>
+              <p className="text-xs text-green-600">
+                {registrationSuccess.count} participante{registrationSuccess.count !== 1 ? "s" : ""} via {registrationSuccess.payLabel}
+              </p>
             </motion.div>
 
             {/* Info cards */}

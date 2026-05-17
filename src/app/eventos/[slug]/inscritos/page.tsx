@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronUp,
   Calendar,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -113,6 +114,38 @@ export default function InscritosPage() {
 
   const collapseAll = () => {
     setExpandedCategories({});
+  };
+
+  const exportCSV = () => {
+    if (!data) return;
+    const allRegs: RegistrationItem[] = [];
+    for (const cat of data.categories) {
+      for (const r of cat.registrations) {
+        allRegs.push(r);
+      }
+    }
+    const headers = ["#", "Nombre", "Apellido", "Cedula", "Fecha Nacimiento", "Categoria", "Franela", "Talla"];
+    const rows = allRegs.map((r, i) => [
+      String(i + 1),
+      r.firstName || "",
+      r.lastName || "",
+      r.idNumber || "",
+      r.dateOfBirth || "",
+      r.category || "",
+      r.wantsShirt === false ? "No" : "Si",
+      r.shirtSize || "",
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `inscritos_${data.event.slug}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // Filter registrations based on search and gender
@@ -301,8 +334,17 @@ export default function InscritosPage() {
                 </SelectContent>
               </Select>
 
-              {/* Expand/Collapse */}
+              {/* Expand/Collapse + Export */}
               <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportCSV}
+                  className="text-xs bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
+                >
+                  <Download className="size-3 mr-1" />
+                  Descargar CSV
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -401,7 +443,7 @@ export default function InscritosPage() {
                       <div>Apellido</div>
                       <div>Cedula</div>
                       <div>F. Nacimiento</div>
-                      {eventInfo?.hasShirt !== false && <div>Franela</div>}
+                      {data?.event?.hasShirt !== false && <div>Franela</div>}
                     </div>
 
                     {/* Rows */}
@@ -427,7 +469,7 @@ export default function InscritosPage() {
                         <div className="text-xs text-muted-foreground">
                           {reg.dateOfBirth || "—"}
                         </div>
-                        {eventInfo?.hasShirt !== false && (
+                        {data?.event?.hasShirt !== false && (
                           <div className="text-xs text-muted-foreground hidden sm:block">
                             {reg.wantsShirt === false ? (
                               <span className="text-gray-400">No</span>

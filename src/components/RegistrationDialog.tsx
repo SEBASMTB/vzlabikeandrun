@@ -170,7 +170,7 @@ export function RegistrationDialog({
   const [categoryMessage, setCategoryMessage] = useState<string>("");
   const [mtbProfile, setMTBProfile] = useState<"competitivo" | "recreativo" | "">("");
   const [wantsShirt, setWantsShirt] = useState(true);
-  const [registrationSuccess, setRegistrationSuccess] = useState<{bibNumber: number; payLabel: string; totalPaid: number} | null>(null);
+  const [registrationSuccess, setRegistrationSuccess] = useState<{payLabel: string; totalPaid: number} | null>(null);
   const { toast } = useToast();
 
   const personalForm = useForm<PersonalInfo>({
@@ -370,7 +370,7 @@ export function RegistrationDialog({
       if (res.ok) {
         const payLabel = paymentMethods.find((p) => p.id === selectedPayment)?.label || "pago";
         const totalPaid = (event?.price || 0) + (wantsShirt && event?.shirtIncluded === false ? (event?.shirtPrice || 0) : 0);
-        setRegistrationSuccess({ bibNumber: data.bibNumber, payLabel, totalPaid });
+        setRegistrationSuccess({ payLabel, totalPaid });
       } else {
         toast({
           title: "Error en la inscripción",
@@ -432,19 +432,19 @@ export function RegistrationDialog({
               </p>
             </motion.div>
 
-            {/* Bib Number - Big and prominent */}
+            {/* Payment summary */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
               className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-5"
             >
-              <p className="text-sm font-medium text-green-700 mb-1">Tu dorsal es:</p>
-              <span className="text-5xl font-black text-green-700">
-                #{registrationSuccess.bibNumber}
+              <p className="text-sm font-medium text-green-700 mb-1">Monto a pagar:</p>
+              <span className="text-4xl font-black text-green-700">
+                ${registrationSuccess.totalPaid.toFixed(0)} USD
               </span>
               <p className="text-xs text-green-600 mt-2">
-                Guarda este numero. Te lo pediran el dia del evento.
+                via {registrationSuccess.payLabel}
               </p>
             </motion.div>
 
