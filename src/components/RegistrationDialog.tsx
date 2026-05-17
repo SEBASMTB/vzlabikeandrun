@@ -168,6 +168,7 @@ export function RegistrationDialog({
   const [eligibleCategories, setEligibleCategories] = useState<Array<{ value: string; label: string }>>([]);
   const [categoryMessage, setCategoryMessage] = useState<string>("");
   const [mtbProfile, setMTBProfile] = useState<"competitivo" | "recreativo" | "">("");
+  const [wantsShirt, setWantsShirt] = useState<boolean | null>(null);
   const [registrationSuccess, setRegistrationSuccess] = useState<{bibNumber: number; payLabel: string} | null>(null);
 
   // Extras state
@@ -324,6 +325,7 @@ export function RegistrationDialog({
     setAutoCategory("");
     setAutoAge(null);
     setMTBProfile("");
+    setWantsShirt(null);
     setRegistrationSuccess(null);
     setEventExtras([]);
     setSelectedExtras({});
@@ -397,6 +399,8 @@ export function RegistrationDialog({
           paymentRef: paymentRef,
           waiverAccepted: true,
           mtbProfile: event?.sportType === "mtb" ? mtbProfile : undefined,
+          wantsShirt: wantsShirt === true,
+          shirtSize: wantsShirt === true ? personalForm.getValues("shirtSize") : "",
           extras: extrasPayload,
         }),
       });
@@ -746,28 +750,60 @@ export function RegistrationDialog({
                 </div>
               </div>
 
-              {/* Shirt Size - only show if event has shirt */}
+              {/* Shirt - only show if event has shirt */}
               {event?.hasShirt !== false && (
               <div className="space-y-2">
-                <Label htmlFor="shirtSize">Talla de Camiseta/Franela *</Label>
-                <Select
-                  value={personalForm.watch("shirtSize")}
-                  onValueChange={(val) =>
-                    personalForm.setValue("shirtSize", val)
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Seleccionar talla" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="S">S</SelectItem>
-                    <SelectItem value="M">M</SelectItem>
-                    <SelectItem value="L">L</SelectItem>
-                    <SelectItem value="XL">XL</SelectItem>
-                    <SelectItem value="XXL">XXL</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Este evento incluye franela/camiseta</p>
+                <Label className="text-sm font-medium">
+                  {event?.sportType === "mtb" ? "Jersey" : "Camiseta/Franela"}
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setWantsShirt(true)}
+                    className={`p-3 rounded-lg border-2 text-center transition-all text-sm ${
+                      wantsShirt === true
+                        ? "border-red-500 bg-red-50 text-red-700"
+                        : "border-gray-200 hover:border-gray-300 text-muted-foreground"
+                    }`}
+                  >
+                    <span className="font-bold">Si</span>
+                    <span className="text-xs block">Quiero mi {event?.sportType === "mtb" ? "jersey" : "franela"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWantsShirt(false);
+                      personalForm.setValue("shirtSize", "");
+                    }}
+                    className={`p-3 rounded-lg border-2 text-center transition-all text-sm ${
+                      wantsShirt === false
+                        ? "border-gray-400 bg-gray-50 text-gray-700"
+                        : "border-gray-200 hover:border-gray-300 text-muted-foreground"
+                    }`}
+                  >
+                    <span className="font-bold">No</span>
+                    <span className="text-xs block">No gracias</span>
+                  </button>
+                </div>
+                {wantsShirt === true && (
+                  <Select
+                    value={personalForm.watch("shirtSize")}
+                    onValueChange={(val) =>
+                      personalForm.setValue("shirtSize", val)
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar talla" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="S">S</SelectItem>
+                      <SelectItem value="M">M</SelectItem>
+                      <SelectItem value="L">L</SelectItem>
+                      <SelectItem value="XL">XL</SelectItem>
+                      <SelectItem value="XXL">XXL</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               )}
             </motion.div>

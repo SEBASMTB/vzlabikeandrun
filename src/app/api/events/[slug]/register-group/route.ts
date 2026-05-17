@@ -10,7 +10,8 @@ interface GroupParticipant {
   idNumber: string;
   gender: string;
   dateOfBirth: string;
-  shirtSize?: string;
+ shirtSize?: string;
+  wantsShirt?: boolean;
   category: string;
   mtbProfile?: string;
 }
@@ -187,7 +188,7 @@ export async function POST(
           idNumber: p.idNumber.toUpperCase().trim(),
           gender: p.gender,
           dateOfBirth: p.dateOfBirth,
-          shirtSize: p.shirtSize || "",
+          shirtSize: p.wantsShirt ? (p.shirtSize || "") : "",
           category: p.category,
           team: "",
           emergencyContact: emergencyContact || "",
