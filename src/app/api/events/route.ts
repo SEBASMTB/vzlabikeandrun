@@ -61,7 +61,8 @@ export async function POST(request: NextRequest) {
       sportType, imageUrl, bannerImage, price, priceBs,
       maxParticipants, featured, status,
       organizer, prizes, rules, kitInfo, sponsors, categories,
-      ageCalcMode, hasShirt,
+      ageCalcMode, hasShirt, shirtIncluded, shirtPrice,
+      registrationMode, maxGroupSize,
     } = body;
 
     if (!title || !slug || !date || !location || !distance || !category) {
@@ -96,6 +97,10 @@ export async function POST(request: NextRequest) {
         categories: categories || "",
         ageCalcMode: ageCalcMode || "calendar_year",
         hasShirt: hasShirt !== false,
+        shirtIncluded: shirtIncluded !== false,
+        shirtPrice: shirtPrice || 0,
+        registrationMode: registrationMode || "individual",
+        maxGroupSize: maxGroupSize || 10,
       },
     });
 

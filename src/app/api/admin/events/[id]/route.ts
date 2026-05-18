@@ -77,6 +77,10 @@ export async function PUT(
         categories: body.categories,
         ageCalcMode: body.ageCalcMode,
         hasShirt: body.hasShirt,
+        shirtIncluded: body.shirtIncluded,
+        shirtPrice: body.shirtPrice,
+        registrationMode: body.registrationMode,
+        maxGroupSize: body.maxGroupSize,
       },
     });
 

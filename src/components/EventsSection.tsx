@@ -55,8 +55,14 @@ export function EventsSection() {
 
   const handleRegister = (event: EventCardProps) => {
     setSelectedEvent(event);
-    setRegistrationType(null);
-    setDialogOpen(true);
+    const mode = event.registrationMode || "individual";
+    if (mode === "individual") {
+      setRegistrationType("individual");
+      setDialogOpen(true);
+    } else {
+      setRegistrationType(null);
+      setDialogOpen(true);
+    }
   };
 
   const handleChooseType = (type: RegistrationType) => {
@@ -180,8 +186,9 @@ export function EventsSection() {
                 Como deseas inscribirte?
               </p>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className={`grid gap-4 ${(selectedEvent?.registrationMode === "all" || !selectedEvent?.registrationMode) ? "grid-cols-3" : "grid-cols-2"}`}>
                 {/* Individual */}
+                {(selectedEvent?.registrationMode === "all" || selectedEvent?.registrationMode === "dupla" || selectedEvent?.registrationMode === "group" || !selectedEvent?.registrationMode || selectedEvent?.registrationMode === "individual") && (
                 <button
                   type="button"
                   onClick={() => handleChooseType("individual")}
@@ -197,8 +204,29 @@ export function EventsSection() {
                     </p>
                   </div>
                 </button>
+                )}
+
+                {/* Dupla */}
+                {(selectedEvent?.registrationMode === "all" || selectedEvent?.registrationMode === "dupla") && (
+                <button
+                  type="button"
+                  onClick={() => handleChooseType("group")}
+                  className="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all duration-200"
+                >
+                  <div className="w-16 h-16 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition-colors">
+                    <Users className="size-8 text-blue-600" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-bold text-foreground">Dupla</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Inscripcion para 2 personas
+                    </p>
+                  </div>
+                </button>
+                )}
 
                 {/* Grupal */}
+                {(selectedEvent?.registrationMode === "all" || selectedEvent?.registrationMode === "group") && (
                 <button
                   type="button"
                   onClick={() => handleChooseType("group")}
@@ -210,10 +238,11 @@ export function EventsSection() {
                   <div className="text-center">
                     <p className="font-bold text-foreground">Grupal</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      De 2 a 10 personas
+                      De 2 a {selectedEvent?.maxGroupSize || 10} personas
                     </p>
                   </div>
                 </button>
+                )}
               </div>
             </motion.div>
           </AnimatePresence>

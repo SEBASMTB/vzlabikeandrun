@@ -26,6 +26,8 @@ export interface EventCardProps {
   hasShirt?: boolean;
   shirtIncluded?: boolean;
   shirtPrice?: number;
+  registrationMode?: string;
+  maxGroupSize?: number;
   onRegister?: (event: EventCardProps) => void;
 }
 
@@ -70,6 +72,10 @@ export function EventCard({
   ageCalcMode,
   categories,
   hasShirt,
+  shirtIncluded,
+  shirtPrice,
+  registrationMode,
+  maxGroupSize,
   onRegister,
 }: EventCardProps) {
   const router = useRouter();
@@ -95,6 +101,8 @@ export function EventCard({
     hasShirt,
     shirtIncluded,
     shirtPrice,
+    registrationMode,
+    maxGroupSize,
   };
 
   return (

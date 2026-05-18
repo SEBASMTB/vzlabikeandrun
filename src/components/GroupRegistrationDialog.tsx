@@ -121,7 +121,7 @@ const paymentMethods: {
   },
 ];
 
-const MAX_PARTICIPANTS = 10;
+const DEFAULT_MAX_PARTICIPANTS = 10;
 const MIN_PARTICIPANTS = 2;
 
 interface Participant {
@@ -438,10 +438,10 @@ export function GroupRegistrationDialog({
 
   // ─── Add / Remove participant ──────────────────────────────────────────
   const addParticipant = useCallback(() => {
-    if (participants.length >= MAX_PARTICIPANTS) {
+    if (participants.length >= maxParticipants) {
       toast({
         title: "Máximo alcanzado",
-        description: `No puedes agregar más de ${MAX_PARTICIPANTS} participantes.`,
+        description: `No puedes agregar más de ${maxParticipants} participantes.`,
         variant: "destructive",
       });
       return;
@@ -675,13 +675,17 @@ export function GroupRegistrationDialog({
   }, 0);
   const totalPrice = baseTotalPrice + shirtGroupTotal + extrasGroupTotal;
 
+  // Use event's maxGroupSize or default; for dupla mode, always 2
+  const isDuplaMode = event?.registrationMode === "dupla";
+  const maxParticipants = isDuplaMode ? 2 : (event?.maxGroupSize || DEFAULT_maxParticipants);
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="size-5 text-red-500" />
-            Inscripción Grupal - {event?.title}
+            {isDuplaMode ? "Inscripción Dupla" : "Inscripción Grupal"} - {event?.title}
           </DialogTitle>
           <DialogDescription>
             {event?.distance} • {event?.location} •{" "}
@@ -953,19 +957,21 @@ export function GroupRegistrationDialog({
             >
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-foreground">
-                  Participantes ({participants.length}/{MAX_PARTICIPANTS})
+                  Participantes ({participants.length}/{maxParticipants})
                 </p>
+                {!isDuplaMode && (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={addParticipant}
-                  disabled={participants.length >= MAX_PARTICIPANTS}
+                  disabled={participants.length >= maxParticipants}
                   className="gap-1"
                 >
                   <UserPlus className="size-4" />
                   Agregar
                 </Button>
+                )}
               </div>
 
               <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-1">
@@ -989,6 +995,7 @@ export function GroupRegistrationDialog({
                           </Badge>
                         )}
                       </div>
+                      {!isDuplaMode && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -999,6 +1006,7 @@ export function GroupRegistrationDialog({
                       >
                         <Trash2 className="size-4" />
                       </Button>
+                      )}
                     </div>
 
                     {/* Cédula (first field with auto-lookup) */}

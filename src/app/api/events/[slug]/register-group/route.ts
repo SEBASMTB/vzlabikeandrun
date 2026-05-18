@@ -69,10 +69,10 @@ export async function POST(
       waiverAccepted: boolean;
     };
 
-    // Validate required fields
-    if (!participants || !Array.isArray(participants) || participants.length < 2 || participants.length > 10) {
+    // Validate required fields (min/max checked after db init below)
+    if (!participants || !Array.isArray(participants) || participants.length < 2) {
       return NextResponse.json(
-        { error: "Debes incluir entre 2 y 10 participantes" },
+        { error: "Debes incluir al menos 2 participantes" },
         { status: 400 }
       );
     }
@@ -117,6 +117,15 @@ export async function POST(
       return NextResponse.json(
         { error: "Evento no encontrado" },
         { status: 404 }
+      );
+    }
+
+    // Validate max group size
+    const maxGroup = event.maxGroupSize || 10;
+    if (participants.length > maxGroup) {
+      return NextResponse.json(
+        { error: `Este evento permite un maximo de ${maxGroup} participantes por grupo` },
+        { status: 400 }
       );
     }
 
