@@ -698,3 +698,4 @@ export const db = createInitProxy(_prismaClient);
 if (process.env.NODE_ENV === 'production') {
   dbReadyPromise = initAndSeed(_prismaClient).catch(console.error);
 }
+
