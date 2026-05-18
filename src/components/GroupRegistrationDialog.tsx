@@ -675,9 +675,8 @@ export function GroupRegistrationDialog({
   }, 0);
   const totalPrice = baseTotalPrice + shirtGroupTotal + extrasGroupTotal;
 
-  // Use event's maxGroupSize or default; for dupla mode, always 2
-  const isDuplaMode = event?.registrationMode === "dupla";
-  const maxParticipants = isDuplaMode ? 2 : (event?.maxGroupSize || DEFAULT_maxParticipants);
+  const isDuplaMode = false;
+  const maxParticipants = DEFAULT_MAX_PARTICIPANTS;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>

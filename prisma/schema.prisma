@@ -35,8 +35,6 @@ model Event {
   hasShirt        Boolean         @default(true)
   shirtIncluded   Boolean         @default(true)
   shirtPrice      Float           @default(0)
-  registrationMode String         @default("individual")
-  maxGroupSize    Int             @default(10)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   registrations   Registration[]

@@ -88,8 +88,6 @@ interface EventData {
   hasShirt: boolean;
   shirtIncluded: boolean;
   shirtPrice: number;
-  registrationMode: string;
-  maxGroupSize: number;
   categories: string;
 }
 
@@ -939,14 +937,8 @@ export function EventDetailPage({ event, categories }: EventDetailPageProps) {
                         className="w-full gradient-primary text-white border-0 hover:opacity-90"
                         size="lg"
                         onClick={() => {
-                          const mode = event.registrationMode || "individual";
-                          if (mode === "individual") {
-                            setRegType("individual");
-                            setDialogOpen(true);
-                          } else {
-                            setRegType(null);
-                            setDialogOpen(true);
-                          }
+                          setRegType("individual");
+                          setDialogOpen(true);
                         }}
                       >
                         Inscribirme Ahora
@@ -987,66 +979,6 @@ export function EventDetailPage({ event, categories }: EventDetailPageProps) {
         </div>
       </footer>
 
-      {/* Registration Mode Selector */}
-      {dialogOpen && regType === null && event.registrationMode && event.registrationMode !== "individual" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setDialogOpen(false)}>
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-center mb-1">Tipo de Inscripcion</h3>
-            <p className="text-sm text-muted-foreground text-center mb-5">{event.title}</p>
-            <div className="grid gap-3">
-              {/* Individual - always shown if not individual-only */}
-              {(event.registrationMode === "all" || event.registrationMode === "dupla" || event.registrationMode === "group") && (
-                <button
-                  onClick={() => { setRegType("individual"); }}
-                  className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-red-300 hover:bg-red-50/50 transition-all"
-                >
-                  <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                    <User className="size-6 text-red-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-bold">Individual</p>
-                    <p className="text-xs text-muted-foreground">Inscripcion para 1 persona</p>
-                  </div>
-                </button>
-              )}
-              {/* Dupla */}
-              {(event.registrationMode === "all" || event.registrationMode === "dupla") && (
-                <button
-                  onClick={() => { setRegType("group"); }}
-                  className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all"
-                >
-                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Users className="size-6 text-blue-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-bold">Dupla</p>
-                    <p className="text-xs text-muted-foreground">Inscripcion para 2 personas</p>
-                  </div>
-                </button>
-              )}
-              {/* Grupal */}
-              {(event.registrationMode === "all" || event.registrationMode === "group") && (
-                <button
-                  onClick={() => { setRegType("group"); }}
-                  className="flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all"
-                >
-                  <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
-                    <Users className="size-6 text-emerald-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-bold">Grupal</p>
-                    <p className="text-xs text-muted-foreground">De 2 a {event.maxGroupSize || 10} personas</p>
-                  </div>
-                </button>
-              )}
-            </div>
-            <button onClick={() => setDialogOpen(false)} className="w-full mt-4 text-sm text-muted-foreground hover:text-foreground">
-              Cancelar
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Registration Dialog */}
       <RegistrationDialog
         event={{
@@ -1068,8 +1000,6 @@ export function EventDetailPage({ event, categories }: EventDetailPageProps) {
       shirtIncluded: event.shirtIncluded,
       shirtPrice: event.shirtPrice,
       categories: event.categories,
-      registrationMode: event.registrationMode,
-      maxGroupSize: event.maxGroupSize,
         }}
         open={dialogOpen && regType === "individual"}
         onOpenChange={(open) => { if (!open) { setRegType(null); setDialogOpen(false); } }}
@@ -1100,8 +1030,6 @@ export function EventDetailPage({ event, categories }: EventDetailPageProps) {
             shirtIncluded: event.shirtIncluded,
             shirtPrice: event.shirtPrice,
             categories: event.categories,
-            registrationMode: event.registrationMode,
-            maxGroupSize: event.maxGroupSize,
           }}
           open={dialogOpen}
           onOpenChange={(open) => { if (!open) { setRegType(null); setDialogOpen(false); } }}

@@ -55,14 +55,8 @@ export function EventsSection() {
 
   const handleRegister = (event: EventCardProps) => {
     setSelectedEvent(event);
-    const mode = event.registrationMode || "individual";
-    if (mode === "individual") {
-      setRegistrationType("individual");
-      setDialogOpen(true);
-    } else {
-      setRegistrationType(null);
-      setDialogOpen(true);
-    }
+    setRegistrationType("individual");
+    setDialogOpen(true);
   };
 
   const handleChooseType = (type: RegistrationType) => {
@@ -158,96 +152,6 @@ export function EventsSection() {
           </Button>
         </motion.div>
       </div>
-
-      {/* Registration Type Chooser Dialog */}
-      <Dialog open={dialogOpen && registrationType === null} onOpenChange={(open) => {
-        if (!open) {
-          setSelectedEvent(null);
-          setRegistrationType(null);
-        }
-      }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Tipo de Inscripcion</DialogTitle>
-            <DialogDescription>
-              {selectedEvent?.title} — {selectedEvent?.distance}
-            </DialogDescription>
-          </DialogHeader>
-
-          <AnimatePresence mode="wait">
-            <motion.div
-              key="type-selection"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="space-y-4 py-4"
-            >
-              <p className="text-sm text-muted-foreground text-center mb-6">
-                Como deseas inscribirte?
-              </p>
-
-              <div className={`grid gap-4 ${(selectedEvent?.registrationMode === "all" || !selectedEvent?.registrationMode) ? "grid-cols-3" : "grid-cols-2"}`}>
-                {/* Individual */}
-                {(selectedEvent?.registrationMode === "all" || selectedEvent?.registrationMode === "dupla" || selectedEvent?.registrationMode === "group" || !selectedEvent?.registrationMode || selectedEvent?.registrationMode === "individual") && (
-                <button
-                  type="button"
-                  onClick={() => handleChooseType("individual")}
-                  className="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 hover:border-red-300 hover:bg-red-50/50 transition-all duration-200"
-                >
-                  <div className="w-16 h-16 rounded-full bg-red-100 group-hover:bg-red-200 flex items-center justify-center transition-colors">
-                    <User className="size-8 text-red-600" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-bold text-foreground">Individual</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Inscripcion para 1 persona
-                    </p>
-                  </div>
-                </button>
-                )}
-
-                {/* Dupla */}
-                {(selectedEvent?.registrationMode === "all" || selectedEvent?.registrationMode === "dupla") && (
-                <button
-                  type="button"
-                  onClick={() => handleChooseType("group")}
-                  className="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all duration-200"
-                >
-                  <div className="w-16 h-16 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition-colors">
-                    <Users className="size-8 text-blue-600" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-bold text-foreground">Dupla</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Inscripcion para 2 personas
-                    </p>
-                  </div>
-                </button>
-                )}
-
-                {/* Grupal */}
-                {(selectedEvent?.registrationMode === "all" || selectedEvent?.registrationMode === "group") && (
-                <button
-                  type="button"
-                  onClick={() => handleChooseType("group")}
-                  className="group flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all duration-200"
-                >
-                  <div className="w-16 h-16 rounded-full bg-emerald-100 group-hover:bg-emerald-200 flex items-center justify-center transition-colors">
-                    <Users className="size-8 text-emerald-600" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-bold text-foreground">Grupal</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      De 2 a {selectedEvent?.maxGroupSize || 10} personas
-                    </p>
-                  </div>
-                </button>
-                )}
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </DialogContent>
-      </Dialog>
 
       {/* Individual Registration Dialog (lazy loaded) */}
       {registrationType === "individual" && (

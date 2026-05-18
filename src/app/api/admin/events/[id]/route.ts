@@ -79,8 +79,6 @@ export async function PUT(
         hasShirt: body.hasShirt,
         shirtIncluded: body.shirtIncluded,
         shirtPrice: body.shirtPrice,
-        registrationMode: body.registrationMode,
-        maxGroupSize: body.maxGroupSize,
       },
     });
 

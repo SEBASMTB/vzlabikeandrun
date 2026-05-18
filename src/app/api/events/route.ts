@@ -8,6 +8,7 @@ import { requireAuth } from "@/lib/auth";
 let eventsCache: { data: string; timestamp: number } | null = null;
 const CACHE_TTL = 15_000; // 15 seconds
 
+
 export async function GET() {
   try {
     // Return cached response if still fresh
@@ -62,7 +63,6 @@ export async function POST(request: NextRequest) {
       maxParticipants, featured, status,
       organizer, prizes, rules, kitInfo, sponsors, categories,
       ageCalcMode, hasShirt, shirtIncluded, shirtPrice,
-      registrationMode, maxGroupSize,
     } = body;
 
     if (!title || !slug || !date || !location || !distance || !category) {
@@ -99,8 +99,6 @@ export async function POST(request: NextRequest) {
         hasShirt: hasShirt !== false,
         shirtIncluded: shirtIncluded !== false,
         shirtPrice: shirtPrice || 0,
-        registrationMode: registrationMode || "individual",
-        maxGroupSize: maxGroupSize || 10,
       },
     });
 

@@ -120,15 +120,6 @@ export async function POST(
       );
     }
 
-    // Validate max group size
-    const maxGroup = event.maxGroupSize || 10;
-    if (participants.length > maxGroup) {
-      return NextResponse.json(
-        { error: `Este evento permite un maximo de ${maxGroup} participantes por grupo` },
-        { status: 400 }
-      );
-    }
-
     // Check if there's enough capacity
     const currentCount = await db.registration.count({ where: { eventId: event.id } });
     const spotsNeeded = participants.length;

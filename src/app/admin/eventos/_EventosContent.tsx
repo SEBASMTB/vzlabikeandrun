@@ -95,8 +95,6 @@ interface Event {
   hasShirt: boolean;
   shirtIncluded: boolean;
   shirtPrice: number;
-  registrationMode: string;
-  maxGroupSize: number;
   _count?: { registrations: number };
 }
 
@@ -127,8 +125,6 @@ interface FormData {
   hasShirt: boolean;
   shirtIncluded: boolean;
   shirtPrice: number;
-  registrationMode: string;
-  maxGroupSize: number;
 }
 
 const emptyForm: FormData = {
@@ -158,8 +154,6 @@ const emptyForm: FormData = {
   hasShirt: true,
   shirtIncluded: true,
   shirtPrice: 0,
-  registrationMode: "individual",
-  maxGroupSize: 10,
 };
 
 // ============================================================
@@ -333,8 +327,6 @@ export default function AdminEventosPage() {
       hasShirt: event.hasShirt !== undefined ? event.hasShirt : true,
       shirtIncluded: (event as any).shirtIncluded !== undefined ? (event as any).shirtIncluded : true,
       shirtPrice: (event as any).shirtPrice || 0,
-      registrationMode: (event as any).registrationMode || "individual",
-      maxGroupSize: (event as any).maxGroupSize || 10,
     });
     setFormError("");
     setDialogOpen(true);
@@ -1323,59 +1315,6 @@ export default function AdminEventosPage() {
                 </div>
               </div>
             </div>
-
-            {/* ---- REGISTRATION MODE ---- */}
-            <SectionTitle>Modo de Inscripcion</SectionTitle>
-
-            <div className="sm:col-span-2">
-              <Label className="text-sm font-medium mb-2 block">Tipos de inscripcion permitidos</Label>
-              <p className="text-xs text-muted-foreground mb-3">
-                Selecciona que modos de inscripcion estaran disponibles para este evento.
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {([
-                  { value: "individual", label: "Individual", desc: "1 persona" },
-                  { value: "dupla", label: "Dupla", desc: "2 personas" },
-                  { value: "group", label: "Grupal", desc: "Hasta N personas" },
-                  { value: "all", label: "Todos", desc: "Individual + Dupla + Grupal" },
-                ] as const).map((mode) => (
-                  <button
-                    key={mode.value}
-                    type="button"
-                    onClick={() => setFormData((p) => ({ ...p, registrationMode: mode.value }))}
-                    className={cn(
-                      "p-3 rounded-lg border-2 text-center transition-all duration-200",
-                      formData.registrationMode === mode.value
-                        ? "border-red-500 bg-red-50 text-red-700"
-                        : "border-gray-200 hover:border-gray-300 text-foreground"
-                    )}
-                  >
-                    <p className="text-sm font-bold">{mode.label}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{mode.desc}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {(formData.registrationMode === "group" || formData.registrationMode === "all") && (
-              <div className="sm:col-span-2">
-                <Label htmlFor="maxGroupSize" className="text-sm font-medium">
-                  Maximo de personas por grupo
-                </Label>
-                <Input
-                  id="maxGroupSize"
-                  type="number"
-                  min={2}
-                  max={50}
-                  value={formData.maxGroupSize}
-                  onChange={(e) => setFormData((p) => ({ ...p, maxGroupSize: parseInt(e.target.value) || 10 }))}
-                  className="mt-1"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Minimo 2, maximo 50. Los grupos de dupla siempre seran exactamente 2.
-                </p>
-              </div>
-            )}
 
             {/* ---- SHIRT / FRANELA ---- */}
             <SectionTitle>Franela / Camiseta</SectionTitle>
