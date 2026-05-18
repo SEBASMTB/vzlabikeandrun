@@ -211,6 +211,7 @@ export function GroupRegistrationDialog({
     count: number;
     payLabel: string;
     totalPaid: number;
+    registrations: Array<{ bibNumber: number; firstName: string; lastName: string }>;
   } | null>(null);
   const { toast } = useToast();
 
@@ -613,10 +614,12 @@ export function GroupRegistrationDialog({
       if (res.ok) {
         const payLabel = paymentMethods.find((p) => p.id === selectedPayment)
           ?.label || "pago";
+        const totalAmount = (event?.price ?? 0) * participants.length;
         setRegistrationSuccess({
           count: data.count,
           payLabel,
           totalPaid: totalPrice,
+          registrations: data.registrations || [],
         });
       } else {
         toast({
@@ -753,7 +756,7 @@ export function GroupRegistrationDialog({
                       Confirma tu pago
                     </p>
                     <p className="text-xs text-amber-700 mt-1">
-                      Completa el pago total con <strong>{registrationSuccess.payLabel}</strong> y envia tu comprobante por WhatsApp.
+                      Completa el pago total de <strong>${registrationSuccess.totalPaid.toFixed(2)} USD</strong> con <strong>{registrationSuccess.payLabel}</strong> y envia tu comprobante por WhatsApp.
                     </p>
                   </div>
                 </div>

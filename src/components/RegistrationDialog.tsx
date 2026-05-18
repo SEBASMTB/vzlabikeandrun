@@ -171,7 +171,7 @@ export function RegistrationDialog({
   const [categoryMessage, setCategoryMessage] = useState<string>("");
   const [mtbProfile, setMTBProfile] = useState<"competitivo" | "recreativo" | "">("");
   const [wantsShirt, setWantsShirt] = useState(true);
-  const [registrationSuccess, setRegistrationSuccess] = useState<{payLabel: string; totalPaid: number} | null>(null);
+  const [registrationSuccess, setRegistrationSuccess] = useState<{bibNumber: number; payLabel: string; totalPaid: number} | null>(null);
 
   // Extras state
   const [eventExtras, setEventExtras] = useState<Array<{
@@ -422,7 +422,7 @@ export function RegistrationDialog({
       if (res.ok) {
         const payLabel = paymentMethods.find((p) => p.id === selectedPayment)?.label || "pago";
         const totalPaid = totalWithExtras;
-        setRegistrationSuccess({ payLabel, totalPaid });
+        setRegistrationSuccess({ bibNumber: data.bibNumber, payLabel, totalPaid });
       } else {
         toast({
           title: "Error en la inscripción",
@@ -529,7 +529,7 @@ export function RegistrationDialog({
                       Confirma tu pago
                     </p>
                     <p className="text-xs text-amber-700 mt-1">
-                      Completa el pago con <strong>{registrationSuccess.payLabel}</strong> y envia tu comprobante por WhatsApp.
+                      Completa el pago de <strong>${registrationSuccess.totalPaid.toFixed(2)} USD</strong> con <strong>{registrationSuccess.payLabel}</strong> y envia tu comprobante por WhatsApp.
                     </p>
                   </div>
                 </div>
