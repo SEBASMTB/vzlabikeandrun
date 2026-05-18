@@ -421,7 +421,7 @@ export function RegistrationDialog({
 
       if (res.ok) {
         const payLabel = paymentMethods.find((p) => p.id === selectedPayment)?.label || "pago";
-        const totalPaid = (event?.price || 0) + (wantsShirt && event?.shirtIncluded === false ? (event?.shirtPrice || 0) : 0);
+        const totalPaid = totalWithExtras;
         setRegistrationSuccess({ payLabel, totalPaid });
       } else {
         toast({
@@ -1324,11 +1324,16 @@ export function RegistrationDialog({
                   <p>
                     <strong>Categoría:</strong> {raceForm.getValues().category}
                   </p>
-                  {extrasTotal > 0 && (
+                  {(extrasTotal > 0 || shirtCost > 0) && (
                     <>
                       <p>
                         <strong>Inscripción:</strong> ${(event?.price ?? 0)} USD
                       </p>
+                      {wantsShirt && !event?.shirtIncluded && (
+                        <p>
+                          <strong>Franela/Camiseta:</strong> ${event?.shirtPrice || 0} USD
+                        </p>
+                      )}
                       {eventExtras
                         .filter((e) => selectedExtras[e.id]?.selected && !e.included)
                         .map((e) => (
