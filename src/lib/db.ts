@@ -274,6 +274,8 @@ CREATE TABLE IF NOT EXISTS "Event" (
     "hasShirt" BOOLEAN NOT NULL DEFAULT 1,
     "shirtIncluded" BOOLEAN NOT NULL DEFAULT 1,
     "shirtPrice" REAL NOT NULL DEFAULT 0,
+    "registrationMode" TEXT NOT NULL DEFAULT 'individual',
+    "maxGroupSize" INTEGER NOT NULL DEFAULT 10,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
@@ -399,6 +401,8 @@ const EXPECTED_COLUMNS: Record<string, Record<string, string>> = {
     hasShirt: 'BOOLEAN NOT NULL DEFAULT 1',
     shirtIncluded: 'BOOLEAN NOT NULL DEFAULT 1',
     shirtPrice: 'REAL NOT NULL DEFAULT 0',
+    registrationMode: "TEXT NOT NULL DEFAULT 'individual'",
+    maxGroupSize: 'INTEGER NOT NULL DEFAULT 10',
     createdAt: 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
     updatedAt: 'DATETIME NOT NULL',
   },
