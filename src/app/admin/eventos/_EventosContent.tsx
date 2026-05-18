@@ -93,6 +93,8 @@ interface Event {
   ageCalcMode: string;
   categoryInterval: string;
   hasShirt: boolean;
+  shirtIncluded: boolean;
+  shirtPrice: number;
   _count?: { registrations: number };
 }
 
@@ -121,6 +123,8 @@ interface FormData {
   ageCalcMode: string;
   categoryInterval: string;
   hasShirt: boolean;
+  shirtIncluded: boolean;
+  shirtPrice: number;
 }
 
 const emptyForm: FormData = {
@@ -148,6 +152,8 @@ const emptyForm: FormData = {
   ageCalcMode: "calendar_year",
   categoryInterval: "10",
   hasShirt: true,
+  shirtIncluded: true,
+  shirtPrice: 0,
 };
 
 // ============================================================
@@ -319,6 +325,8 @@ export default function AdminEventosPage() {
       ageCalcMode: event.ageCalcMode || "calendar_year",
       categoryInterval: (event as any).categoryInterval || "10",
       hasShirt: event.hasShirt !== undefined ? event.hasShirt : true,
+      shirtIncluded: (event as any).shirtIncluded !== undefined ? (event as any).shirtIncluded : true,
+      shirtPrice: (event as any).shirtPrice || 0,
     });
     setFormError("");
     setDialogOpen(true);
@@ -1309,12 +1317,14 @@ export default function AdminEventosPage() {
             </div>
 
             {/* ---- SHIRT / FRANELA ---- */}
+            <SectionTitle>Franela / Camiseta</SectionTitle>
+
             <div className="sm:col-span-2">
               <div className="flex items-center justify-between border rounded-lg p-3">
                 <div>
-                  <Label className="text-sm font-medium">Este evento incluye Franela/Camiseta</Label>
+                  <Label className="text-sm font-medium">Este evento tiene Franela/Camiseta</Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Si marcas NO, los participantes no verán el campo de talla al inscribirse.
+                    Si marcas NO, los participantes no verán la opción de franela al inscribirse.
                   </p>
                 </div>
                 <button
@@ -1334,6 +1344,60 @@ export default function AdminEventosPage() {
                 </button>
               </div>
             </div>
+
+            {formData.hasShirt && (
+              <>
+                <div className="sm:col-span-2">
+                  <div className="flex items-center justify-between border rounded-lg p-3">
+                    <div>
+                      <Label className="text-sm font-medium">Franela incluida en el precio de inscripción</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Si marcas NO, el participante podrá elegir si quiere franela pagando un precio extra.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData((p) => ({ ...p, shirtIncluded: !p.shirtIncluded }))}
+                      className={cn(
+                        "relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors",
+                        formData.shirtIncluded ? "bg-green-500" : "bg-amber-400"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg transition-transform",
+                          formData.shirtIncluded ? "translate-x-5" : "translate-x-0"
+                        )}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                {!formData.shirtIncluded && (
+                  <div>
+                    <Label htmlFor="shirtPrice">Precio de la Franela (USD)</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">$</span>
+                      <Input
+                        id="shirtPrice"
+                        type="text"
+                        inputMode="decimal"
+                        value={formData.shirtPrice || ""}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.]/g, "");
+                          setFormData((p) => ({ ...p, shirtPrice: parseFloat(val) || 0 }));
+                        }}
+                        placeholder="0.00"
+                        className="pl-7"
+                      />
+                    </div>
+                    <p className="text-xs text-amber-600 mt-1">
+                      Este monto se sumará automáticamente al total si el participante elige franela.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* ---- EXTRAS OPCIONALES ---- */}
             <SectionTitle>
