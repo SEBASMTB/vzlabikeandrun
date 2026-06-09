@@ -9,15 +9,15 @@ const quickLinks = [
   { label: "Servicios", href: "/", anchor: "#servicios" },
   { label: "Eventos", href: "/", anchor: "#eventos" },
   { label: "Tienda", href: "/tienda" },
-  { label: "Resultados", href: "https://vbr-results-portal.vercel.app" },
+  { label: "Resultados", href: "https://vbr-results.vercel.app" },
   { label: "Contacto", href: "/", anchor: "#contacto" },
 ];
 
 const serviceLinks = [
   { label: "Cronometraje", href: "/", anchor: "#servicios" },
   { label: "Inscripciones", href: "/", anchor: "#eventos" },
-  { label: "Resultados en Vivo", href: "https://vbr-results-portal.vercel.app" },
-  { label: "VBRWorks®", href: "https://vbr-results-portal.vercel.app" },
+  { label: "Resultados en Vivo", href: "https://vbr-results.vercel.app" },
+  { label: "VBRWorks®", href: "https://vbr-results.vercel.app" },
   { label: "Fotografía", href: "/", anchor: "#servicios" },
   { label: "Timing Tags", href: "/", anchor: "#servicios" },
 ];

@@ -830,7 +830,7 @@ export function EventDetailPage({ event, categories }: EventDetailPageProps) {
                       {/* CTA Button */}
                       <div className="flex flex-col sm:flex-row items-center gap-3">
                         <a
-                          href="https://vbr-results-portal.vercel.app"
+                          href="https://vbr-results.vercel.app"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-semibold text-sm rounded-xl px-6 py-3 transition-all duration-300 hover:shadow-lg hover:shadow-red-500/25 hover:-translate-y-0.5"

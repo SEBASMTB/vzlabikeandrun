@@ -60,8 +60,8 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <head>
         {/* DNS prefetch for external resources */}
-        <link rel="dns-prefetch" href="https://vbr-results-portal.vercel.app" />
-        <link rel="preconnect" href="https://vbr-results-portal.vercel.app" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://vbr-results.vercel.app" />
+        <link rel="preconnect" href="https://vbr-results.vercel.app" crossOrigin="" />
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <link rel="dns-prefetch" href="https://wa.me" />
       </head>

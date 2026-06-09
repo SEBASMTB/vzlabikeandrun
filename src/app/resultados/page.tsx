@@ -17,7 +17,7 @@ import {
   Activity,
 } from "lucide-react";
 
-const RESULTS_URL = "https://vbr-results-portal.vercel.app";
+const RESULTS_URL = "https://vbr-results.vercel.app";
 
 const features = [
   { icon: <Radio className="size-5" />, label: "Cronometraje RFID" },

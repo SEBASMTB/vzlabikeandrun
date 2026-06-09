@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BarChart3, ExternalLink, X } from "lucide-react";
 
-const RESULTS_URL = "https://vbr-results-portal.vercel.app";
+const RESULTS_URL = "https://vbr-results.vercel.app";
 
 export function ResultsBanner() {
   const [visible, setVisible] = useState(true);

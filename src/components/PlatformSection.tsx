@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const RESULTS_URL = "https://vbr-results-portal.vercel.app";
+const RESULTS_URL = "https://vbr-results.vercel.app";
 
 // ============================================================
 // Animated Counter Hook
@@ -171,7 +171,7 @@ export function PlatformSection() {
               <div className="flex-1 flex justify-center">
                 <div className="bg-white/5 rounded-lg px-4 py-1.5 text-xs text-white/40 flex items-center gap-2 border border-white/5">
                   <div className="w-2 h-2 rounded-full bg-green-400/60" />
-                  vbr-results-portal.vercel.app
+                  vbr-results.vercel.app
                 </div>
               </div>
               <div className="flex gap-2">

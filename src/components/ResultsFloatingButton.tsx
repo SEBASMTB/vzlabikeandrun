@@ -4,7 +4,7 @@ import { useState } from "react";
 import { BarChart3, X, ExternalLink, Trophy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const RESULTS_URL = "https://vbr-results-portal.vercel.app";
+const RESULTS_URL = "https://vbr-results.vercel.app";
 
 export function ResultsFloatingButton() {
   const [tooltip, setTooltip] = useState(false);
